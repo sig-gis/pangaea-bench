@@ -375,5 +375,5 @@ class Pastis(RawGeoFMDataset):
         return len(self.meta_patch) * self.nb_split * self.nb_split
 
     @staticmethod
-    def download():
+    def download(self):
         pass

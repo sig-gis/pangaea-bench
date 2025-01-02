@@ -126,6 +126,8 @@ class AI4SmallFarms(RawGeoFMDataset):
 
         # Convert target to a boolean tensor
         target = target.bool()
+        target = target.long()
+
 
         return {
             "image": {

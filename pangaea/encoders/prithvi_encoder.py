@@ -5,7 +5,7 @@ from pathlib import Path
 
 import torch
 import torch.nn as nn
-from timm.layers import to_2tuple
+from timm.models.layers import to_2tuple
 from timm.models.vision_transformer import Block
 
 from pangaea.encoders.base import Encoder

@@ -1,0 +1,9 @@
+_target_: pangaea.decoders.mlp.MLP
+
+encoder: null
+
+topology:
+  - 1024
+softmax: true
+num_classes: ${dataset.num_classes}
+finetune: ${finetune}

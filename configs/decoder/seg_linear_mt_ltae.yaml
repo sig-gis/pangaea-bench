@@ -1,0 +1,10 @@
+_target_: pangaea.decoders.mlp.MLPMT
+
+encoder: null
+
+topology: null
+num_classes: ${dataset.num_classes}
+multi_temporal: ${dataset.multi_temporal}
+finetune: ${finetune}
+
+multi_temporal_strategy: ltae

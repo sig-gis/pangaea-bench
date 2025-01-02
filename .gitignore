@@ -12,6 +12,7 @@ wandb/
 data/*
 data
 pretrained_models
+checkpoints/
 # Scenes for mados tiny
 # Wow gitignore pattern mathcing is a mess
 !data/mados
