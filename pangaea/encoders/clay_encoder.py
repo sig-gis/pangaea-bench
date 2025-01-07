@@ -365,7 +365,7 @@ class DynamicEmbedding(nn.Module):
         )
         self.fclayer = FCBlock(self.wave_dim)
 
-        # self.initialize_weights()
+        self.initialize_weights()
 
     def forward(self, batch, waves):
         waves = posemb_sincos_1d(waves, self.wave_dim)
