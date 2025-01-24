@@ -243,7 +243,7 @@ class DOFA_Encoder(Encoder):
             ]
         )
 
-    def forward(self, image):
+    def forward(self, image,return_cls=False):
         # embed patches
         x = [image[m].squeeze(2) for m in self.input_bands.keys()]
         x = torch.cat(x, dim=1)
@@ -265,17 +265,30 @@ class DOFA_Encoder(Encoder):
             if i == len(self.blocks) - 1:
                 x = self.norm(x)
             if i in self.output_layers:
-                out = (
-                    x[:, 1:]
-                    .permute(0, 2, 1)
-                    .view(
-                        x.shape[0],
-                        -1,
-                        self.img_size // self.patch_size,
-                        self.img_size // self.patch_size,
+                if not return_cls:
+                    out = (
+                        x[:, 1:]
+                        .permute(0, 2, 1)
+                        .view(
+                            x.shape[0],
+                            -1,
+                            self.img_size // self.patch_size,
+                            self.img_size // self.patch_size,
+                        )
+                        .contiguous()
                     )
-                    .contiguous()
-                )
+                else:
+                    out = (
+                        x[:, :]
+                        .permute(0, 2, 1)
+                        .view(
+                            x.shape[0],
+                            -1,
+                            self.img_size // self.patch_size,
+                            self.img_size // self.patch_size,
+                        )
+                        .contiguous()
+                    )
 
                 output.append(out)
 

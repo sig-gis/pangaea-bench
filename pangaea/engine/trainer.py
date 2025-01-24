@@ -567,3 +567,193 @@ class RegTrainer(Trainer):
         mse = F.mse_loss(logits.squeeze(dim=1), target)  
         self.training_metrics["MSE"].update(mse.item())
 
+
+class ClsTrainer(Trainer):
+    def __init__(
+        self,
+        model: nn.Module,
+        train_loader: DataLoader,
+        criterion: nn.Module,
+        optimizer: Optimizer,
+        lr_scheduler: LRScheduler,
+        evaluator: torch.nn.Module,
+        n_epochs: int,
+        exp_dir: pathlib.Path | str,
+        device: torch.device,
+        precision: str,
+        use_wandb: bool,
+        ckpt_interval: int,
+        eval_interval: int,
+        log_interval: int,
+        best_metric_key: str,
+    ):
+        """Initialize the Trainer for classification task.
+        Args:
+            model (nn.Module): model to train (encoder + decoder).
+            train_loader (DataLoader): train data loader.
+            criterion (nn.Module): criterion to compute the loss.
+            optimizer (Optimizer): optimizer to update the model's parameters.
+            lr_scheduler (LRScheduler): lr scheduler to update the learning rate.
+            evaluator (torch.nn.Module): task evaluator to evaluate the model.
+            n_epochs (int): number of epochs to train the model.
+            exp_dir (pathlib.Path | str): path to the experiment directory.
+            device (torch.device): model
+            precision (str): precision to train the model (fp32, fp16, bfp16).
+            use_wandb (bool): whether to use wandb for logging.
+            ckpt_interval (int): interval to save the checkpoint.
+            eval_interval (int): interval to evaluate the model.
+            log_interval (int): interval to log the training information.
+            best_metric_key (str): metric that determines best checkpoints.
+        """
+        super().__init__(
+            model=model,
+            train_loader=train_loader,
+            criterion=criterion,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            evaluator=evaluator,
+            n_epochs=n_epochs,
+            exp_dir=exp_dir,
+            device=device,
+            precision=precision,
+            use_wandb=use_wandb,
+            ckpt_interval=ckpt_interval,
+            eval_interval=eval_interval,
+            log_interval=log_interval,
+            best_metric_key=best_metric_key,
+        )
+
+        self.training_metrics = {
+            name: RunningAverageMeter(length=100) for name in ["Acc", "mAcc"]
+        }
+        self.best_metric = float("-inf")
+        self.best_metric_comp = operator.gt
+
+    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Compute the loss.
+
+        Args:
+            logits (torch.Tensor): logits from the decoder.
+            target (torch.Tensor): target tensor.
+
+        Returns:
+            torch.Tensor: loss value.
+        """
+        return self.criterion(logits, target)
+
+    @torch.no_grad()
+    def compute_logging_metrics(
+        self, logits: torch.Tensor, target: torch.Tensor
+    ) -> None:
+        """Compute logging metrics.
+
+        Args:
+            logits (torch.Tensor): loggits from the decoder.
+            target (torch.Tensor): target tensor.
+        """
+        # logits = F.interpolate(logits, size=target.shape[1:], mode='bilinear')
+        num_classes = logits.shape[1]
+        if num_classes == 1:
+            pred = (torch.sigmoid(logits) > 0.5).type(torch.int64)
+        else:
+            pred = torch.argmax(logits, dim=1, keepdim=True)
+        target = torch.argmax(target,dim=1,keepdim=True)
+        # target = target.unsqueeze(1)
+        # ignore_mask = target == self.train_loader.dataset.ignore_index
+        # target[ignore_mask] = 0
+        # ignore_mask = ignore_mask.expand(
+        #     -1, num_classes if num_classes > 1 else 2, -1, -1
+        # )
+
+        # dims = list(logits.shape)
+        # if num_classes == 1:
+        #     dims[1] = 2
+        # binary_pred = torch.zeros(dims, dtype=bool, device=self.device)
+        # binary_target = torch.zeros(dims, dtype=bool, device=self.device)
+        # binary_pred.scatter_(dim=1, index=pred, src=torch.ones_like(binary_pred))
+        # binary_target.scatter_(dim=1, index=target, src=torch.ones_like(binary_target))
+        # # binary_pred[ignore_mask] = 0
+        # # binary_target[ignore_mask] = 0
+
+        intersection = pred == target
+
+        # print(intersection)
+        # union = torch.logical_or(binary_pred, binary_target)
+
+        acc = (intersection.sum() / len(pred)) * 100
+
+        pred_oh = torch.nn.functional.one_hot(pred,self.num_classes)
+        target_oh = torch.nn.functional.one_hot(pred,self.num_classes)
+
+        intersection_oh = pred_oh==target_oh
+        macc = (
+            torch.nanmean(
+                intersection_oh.sum(dim=0) / target_oh.sum(dim=0)
+            )
+            * 100
+        )
+        # miou = (
+        #     torch.nanmean(intersection.sum(dim=(0, 2, 3)) / union.sum(dim=(0, 2, 3)))
+        #     * 100
+        # )
+
+        self.training_metrics["Acc"].update(acc.item())
+        self.training_metrics["mAcc"].update(macc.item())
+        # self.training_metrics["mIoU"].update(miou.item())
+
+    def train_one_epoch(self, epoch: int) -> None:
+        """Train model for one epoch.
+
+        Args:
+            epoch (int): number of the epoch.
+        """
+        self.model.train()
+
+        end_time = time.time()
+        for batch_idx, data in enumerate(self.train_loader):
+            image, target = data["image"], data["target"]
+            image = {modality: value.to(self.device) for modality, value in image.items()}
+            target = target.to(self.device)
+
+            self.training_stats["data_time"].update(time.time() - end_time)
+
+            with torch.autocast(
+                "cuda", enabled=self.enable_mixed_precision, dtype=self.precision
+            ):
+                logits = self.model(image)
+                loss = self.compute_loss(logits, target)
+
+            self.optimizer.zero_grad()
+
+            if not torch.isfinite(loss):
+                raise FloatingPointError(
+                    f"Rank {self.rank} got infinite/NaN loss at batch {batch_idx} of epoch {epoch}!"
+                )
+
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+            self.training_stats['loss'].update(loss.item())
+            with torch.no_grad():
+                self.compute_logging_metrics(logits, target)
+            if (batch_idx + 1) % self.log_interval == 0:
+                self.log(batch_idx + 1, epoch)
+
+            self.lr_scheduler.step()
+
+            if self.use_wandb and self.rank == 0:
+                self.wandb.log(
+                    {
+                        "train_loss": loss.item(),
+                        "learning_rate": self.optimizer.param_groups[0]["lr"],
+                        "epoch": epoch,
+                        **{
+                            f"train_{k}": v.avg
+                            for k, v in self.training_metrics.items()
+                        },
+                    },
+                    step=epoch * len(self.train_loader) + batch_idx,
+                )
+
+            self.training_stats["batch_time"].update(time.time() - end_time)
+            end_time = time.time()

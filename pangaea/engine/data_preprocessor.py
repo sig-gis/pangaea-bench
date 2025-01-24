@@ -34,10 +34,10 @@ class BasePreprocessor:
                     f"Image dimension must be 4 (C, T, H, W), Got {str(len(v.shape))}"
                 )
 
-        if len(data["target"].shape) != 2:
-            raise AssertionError(
-                f"Target dimension must be 2 (H, W), Got {str(len(data['target'].shape))}"
-            )
+        # if len(data["target"].shape) != 2:
+        #     raise AssertionError(
+        #         f"Target dimension must be 2 (H, W), Got {str(len(data['target'].shape))}"
+        #     )
 
     def check_size(self, data: dict[str, torch.Tensor | dict[str, torch.Tensor]]):
         """check if data size is equal"""
@@ -50,10 +50,10 @@ class BasePreprocessor:
                     f"Image size (T, H, W) from all modalities must be equal, Got {str(shape)}"
                 )
 
-        if base_shape[-2:] != data["target"].shape[-2:]:
-            raise AssertionError(
-                f"Image size and target size (H, W) must be equal, Got {str(tuple(base_shape[-2:]))} and {str(tuple(data['target'].shape[-2:]))}"
-            )
+        # if base_shape[-2:] != data["target"].shape[-2:]:
+        #     raise AssertionError(
+        #         f"Image size and target size (H, W) must be equal, Got {str(tuple(base_shape[-2:]))} and {str(tuple(data['target'].shape[-2:]))}"
+        #     )
 
 
 class Preprocessor(BasePreprocessor):
@@ -75,6 +75,9 @@ class Preprocessor(BasePreprocessor):
         meta["encoder_bands"] = encoder_cfg["input_bands"]
         meta["multi_modal"] = dataset_cfg["multi_modal"]
         meta["multi_temporal"] = dataset_cfg["multi_temporal"]
+        
+        if 'resize_target' in dataset_cfg:
+            meta['resize_target'] = dataset_cfg['resize_target']
 
         meta["data_bands"] = dataset_cfg["bands"]
         meta["data_img_size"] = dataset_cfg["img_size"]
@@ -666,6 +669,83 @@ class ImportanceRandomCropToEncoder(ImportanceRandomCrop):
         super().__init__(size, pad_if_needed, num_trials, **meta)
 
 
+class Resize(BasePreprocessor):
+    def __init__(
+        self,
+        size: int | Sequence[int],
+        interpolation=T.InterpolationMode.BILINEAR,
+        antialias: Optional[bool] = True,
+        resize_target: bool = True,
+        **meta,
+    ) -> None:
+        """Initialize the Resize preprocessor.
+        Args:
+        size (sequence or int): Desired output size. If size is a sequence like
+            (h, w), output size will be matched to this.
+        interpolation (InterpolationMode): Desired interpolation enum defined by
+            :class:`torchvision.transforms.InterpolationMode`.
+        antialias (bool, optional): Whether to apply antialiasing.
+        resize_target (bool, optional): Whether to resize the target
+        meta: statistics/info of the input data and target encoder
+        """
+        super().__init__()
+
+        if not isinstance(size, (int, Sequence)):
+            raise TypeError(f"Size should be int or sequence. Got {type(size)}")
+        if isinstance(size, Sequence) and len(size) not in (1, 2):
+            raise ValueError("If size is a sequence, it should have 1 or 2 values")
+        self.size = _setup_size(
+            size, error_msg="Please provide only two dimensions (h, w) for size."
+        )
+
+        if isinstance(interpolation, int):
+            interpolation = TF._interpolation_modes_from_int(interpolation)
+
+        self.interpolation = interpolation
+        self.antialias = antialias
+        self.resize_target = resize_target
+
+    def __call__(
+        self, data: dict[str, torch.Tensor | dict[str, torch.Tensor]]
+    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+        """Resize the data.
+        Args:
+            data (dict): input data.
+        Returns:
+            dict[str, torch.Tensor | dict[str, torch.Tensor]]: output dictionary following the format
+            {"image":
+                {
+                encoder_modality_1: torch.Tensor of shape (C T H W) (T=1 if single timeframe),
+                ...
+                encoder_modality_N: torch.Tensor of shape (C T H W) (T=1 if single timeframe),
+                 },
+            "target": torch.Tensor of shape (H W),
+             "metadata": dict}.
+        """
+        for k, v in data["image"].items():
+            data["image"][k] = TF.resize(
+                data["image"][k],
+                self.size,
+                interpolation=self.interpolation,
+                antialias=self.antialias,
+            )
+
+        if self.resize_target:
+            if torch.is_floating_point(data["target"]):
+                data["target"] = TF.resize(
+                    data["target"].unsqueeze(0),
+                    size=self.size,
+                    interpolation=T.InterpolationMode.BILINEAR,
+                ).squeeze(0)
+            else:
+                data["target"] = TF.resize(
+                    data["target"].unsqueeze(0),
+                    size=self.size,
+                    interpolation=T.InterpolationMode.NEAREST,
+                ).squeeze(0)
+
+        return data
+    
 class Resize(BasePreprocessor):
     def __init__(
         self,
