@@ -9,4 +9,4 @@ finetune: ${finetune}
 
 multi_temporal_strategy: ltae
 softmax: true
-pooling_strategy: max
+pooling_strategy: mean

@@ -683,12 +683,12 @@ class ClsTrainer(Trainer):
         acc = (intersection.sum() / len(pred)) * 100
 
         pred_oh = torch.nn.functional.one_hot(pred,self.num_classes)
-        target_oh = torch.nn.functional.one_hot(pred,self.num_classes)
+        target_oh = torch.nn.functional.one_hot(target,self.num_classes)
 
         intersection_oh = pred_oh==target_oh
         macc = (
             torch.nanmean(
-                intersection_oh.sum(dim=0) / target_oh.sum(dim=0)
+                intersection_oh.sum(dim=0) / len(target_oh)
             )
             * 100
         )
