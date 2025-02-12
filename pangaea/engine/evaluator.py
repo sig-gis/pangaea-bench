@@ -511,8 +511,10 @@ class ClsEvaluator(Evaluator):
         # Calculate mean IoU, mean F1-score, and mean Accuracy
         mf1 = f1.mean().item()
         macc = (intersection.sum() / (confusion_matrix.sum() + 1e-6)).item() * 100
+        acc_per_class = intersection / (confusion_matrix.sum(dim=1) + 1e-6) * 100
 
         # Convert metrics to CPU and to Python scalars
+        acc_per_class = acc_per_class.cpu()
         f1 = f1.cpu()
         precision = precision.cpu()
         recall = recall.cpu()
@@ -522,6 +524,7 @@ class ClsEvaluator(Evaluator):
             "F1": [f1[i].item() for i in range(self.num_classes)],
             "mF1": mf1,
             "mAcc": macc,
+            'cAcc':[acc_per_class[i].item() for i in range(self.num_classes)],
             "Precision": [precision[i].item() for i in range(self.num_classes)],
             "Recall": [recall[i].item() for i in range(self.num_classes)],
         }
@@ -545,6 +548,8 @@ class ClsEvaluator(Evaluator):
             )
             return header + metric_str + mean_str
 
+
+        acc_str = format_metric('Accuracy', metrics['cAcc'],metrics['mAcc'])
         f1_str = format_metric("F1-score", metrics["F1"], metrics["mF1"])
 
         precision_mean = torch.tensor(metrics["Precision"]).mean().item()
@@ -555,6 +560,7 @@ class ClsEvaluator(Evaluator):
 
         macc_str = f"Mean Accuracy: {metrics['mAcc']:.3f} \n"
 
+        self.logger.info(acc_str)
         self.logger.info(f1_str)
         self.logger.info(precision_str)
         self.logger.info(recall_str)
@@ -565,6 +571,10 @@ class ClsEvaluator(Evaluator):
                 {
                     f"{self.split}_mF1": metrics["mF1"],
                     f"{self.split}_mAcc": metrics["mAcc"],
+                    **{
+                        f"{self.split}_acc_{c}": v
+                        for c, v in zip(self.classes, metrics["cAcc"])
+                    },
                     **{
                         f"{self.split}_F1_{c}": v
                         for c, v in zip(self.classes, metrics["F1"])

@@ -46,6 +46,7 @@ class CROMA_OPTICAL_Encoder(Encoder):
         output_dim: int | list[int],
         download_url: str,
         size="base",
+        resize_pos_embed=False,
     ):
         super().__init__(
             model_name="croma_optical",
@@ -63,6 +64,7 @@ class CROMA_OPTICAL_Encoder(Encoder):
 
         self.output_layers = output_layers
         self.img_size = input_size
+        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != input_size else False
 
         if size == "base":
             self.embed_dim = 768
@@ -126,6 +128,16 @@ class CROMA_OPTICAL_Encoder(Encoder):
         self.s2_encoder.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
 
+        if self.resize_pos_embed:
+            self.resize_input_layer(self.resize_pos_embed)
+
+    def resize_input_layer(self,ft_img_size):
+        self.num_patches = int((ft_img_size / 8) ** 2)
+        self.attn_bias = get_2dalibi(
+            num_heads=self.num_heads, num_patches=self.num_patches
+        )
+        self.img_size = ft_img_size
+
 
 class CROMA_SAR_Encoder(Encoder):
     """
@@ -161,6 +173,7 @@ class CROMA_SAR_Encoder(Encoder):
         output_dim: int | list[int],
         download_url: str,
         size="base",
+        resize_pos_embed=False,
     ):
         super().__init__(
             model_name="croma_sar",
@@ -178,6 +191,7 @@ class CROMA_SAR_Encoder(Encoder):
 
         self.output_layers = output_layers
         self.img_size = input_size
+        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != input_size else False
 
         if size == "base":
             self.embed_dim = 768
@@ -246,6 +260,16 @@ class CROMA_SAR_Encoder(Encoder):
         self.s1_encoder.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
 
+        if self.resize_pos_embed:
+            self.resize_input_layer(self.resize_pos_embed)
+
+    def resize_input_layer(self,ft_img_size):
+        self.num_patches = int((ft_img_size / 8) ** 2)
+        self.attn_bias = get_2dalibi(
+            num_heads=self.num_heads, num_patches=self.num_patches
+        )
+        self.img_size = ft_img_size
+
 
 class CROMA_JOINT_Encoder(Encoder):
     """
@@ -283,8 +307,8 @@ class CROMA_JOINT_Encoder(Encoder):
         output_layers: int | list[int],
         output_dim: int | list[int],
         download_url: str,
-
         size="base",
+        resize_pos_embed=False
 
     ):
         super().__init__(
@@ -303,6 +327,7 @@ class CROMA_JOINT_Encoder(Encoder):
 
         self.output_layers = output_layers
         self.img_size = input_size
+        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != input_size else False
 
         if size == "base":
             self.embed_dim = 768
@@ -392,6 +417,16 @@ class CROMA_JOINT_Encoder(Encoder):
 
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
+        
+        if self.resize_pos_embed:
+            self.resize_input_layer(self.resize_pos_embed)
+
+    def resize_input_layer(self,ft_img_size):
+        self.num_patches = int((ft_img_size / 8) ** 2)
+        self.attn_bias = get_2dalibi(
+            num_heads=self.num_heads, num_patches=self.num_patches
+        )
+        self.img_size = ft_img_size
 
 
 def get_2dalibi(num_heads, num_patches):

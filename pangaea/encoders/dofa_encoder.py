@@ -192,6 +192,7 @@ class DOFA_Encoder(Encoder):
         mlp_ratio=4.0,
         use_norm=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        resize_pos_embed=False
     ):
         super().__init__(
             model_name="dofa_encoder",
@@ -218,6 +219,7 @@ class DOFA_Encoder(Encoder):
         self.wv_list = [
             self.wave_list[m][bi] for m, b in self.input_bands.items() for bi in b
         ]
+        self.resize_pos_embed = resize_pos_embed
 
         self.norm = norm_layer(self.embed_dim)
 
@@ -310,3 +312,15 @@ class DOFA_Encoder(Encoder):
 
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
+
+        if self.resize_pos_embed:
+            self.resize_input_layer(self.resize_pos_embed)
+
+
+
+    def resize_input_layer(self,ft_img_size):
+        self.num_patches = (ft_img_size // self.patch_size) ** 2
+        self.pos_embed = nn.Parameter(
+            torch.zeros(1, self.num_patches + 1, self.embed_dim), requires_grad=False
+        )
+        self.img_size = ft_img_size

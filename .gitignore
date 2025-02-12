@@ -15,6 +15,7 @@ pretrained_models
 checkpoints/
 # Scenes for mados tiny
 # Wow gitignore pattern mathcing is a mess
+RD_*
 !data/mados
 data/mados/*
 !data/mados/splits

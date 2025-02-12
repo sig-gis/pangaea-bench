@@ -65,6 +65,7 @@ class ScaleMAE_Encoder(Encoder):
         qkv_bias: bool = True,
         input_res: float = 1.0,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        resize_pos_embed = False,
     ):
         super().__init__(
             model_name="ScaleMAE",
@@ -84,6 +85,7 @@ class ScaleMAE_Encoder(Encoder):
 
         self.img_size = input_size
         self.patch_size = patch_size
+        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != self.img_size else False
 
         self.input_res = torch.tensor([input_res]).float().cpu()
 
@@ -151,6 +153,9 @@ class ScaleMAE_Encoder(Encoder):
 
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
+
+        if self.resize_pos_embed:
+            self.img_size = self.resize_pos_embed
 
     def forward(self, image):
         x = image["optical"].squeeze(2)

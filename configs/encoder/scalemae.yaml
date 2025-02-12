@@ -11,6 +11,7 @@ depth: 24
 num_heads: 16
 mlp_ratio: 4
 qkv_bias: True
+resize_pos_embed: ${dataset.img_size}
   
 input_res: 1.
 

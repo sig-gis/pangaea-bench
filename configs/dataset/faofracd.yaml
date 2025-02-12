@@ -11,7 +11,7 @@ test_size: 0.2
 val_size: 0.2
 shuffle: true
 
-multi_temporal: True
+multi_temporal: 2
 multi_modal: False
 
 # classes

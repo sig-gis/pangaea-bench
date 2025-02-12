@@ -41,6 +41,8 @@ class MLP(Decoder):
         if not self.finetune:
             for param in self.encoder.parameters():
                 param.requires_grad = False
+        elif self.finetune == 'retrain_embed':
+            pass
 
         if self.topology is None:
             self.topology = []
@@ -355,13 +357,34 @@ class MLPMTCls(Decoder):
         self.softmax=softmax
 
         self.pooling_strategy = pooling_strategy
-        self.num_patches = encoder.num_patches
+
+        print(self.encoder.multi_temporal_output)
+        # self.num_patches = encoder.num_patches
         if not self.finetune:
             for param in self.encoder.parameters():
                 param.requires_grad = False
 
         if self.encoder.multi_temporal and not self.encoder.multi_temporal_output:
-            self.tmap = None
+            ltae_in_channels = decoder_in_channels
+            if self.topology is None:
+                self.topology = []
+                self.topology.append(ltae_in_channels)
+                self.topology.append(self.num_classes)
+            else:
+                self.topology = [ltae_in_channels] + self.topology + [self.num_classes]
+
+            self.n_layers = len(self.topology)
+
+
+            self.layers = nn.ModuleList()
+            for i in range(1,self.n_layers):
+                self.layers.extend(
+                    [
+                        nn.Linear(self.topology[i-1],self.topology[i]),
+                        # nn.ReLU()
+                    ]
+                )
+            self.mlp = nn.Sequential(*self.layers)
         else:
             if self.multi_temporal_strategy == 'ltae':
                 ltae_in_channels = decoder_in_channels
@@ -394,6 +417,7 @@ class MLPMTCls(Decoder):
                 self.mlp = nn.Sequential(*self.layers) 
 
             elif self.multi_temporal_strategy == 'linear':
+                ltae_in_channels = decoder_in_channels
                 if self.topology is None:
                     self.topology = []
                     self.topology.append(ltae_in_channels*self.multi_temporal)
@@ -522,9 +546,9 @@ class MLPMTCls(Decoder):
         elif self.multi_temporal_strategy == 'linear':
 
             if self.pooling_strategy == 'mean':
-                feats = torch.mean(feats,dim=(2,3))
+                feats = torch.mean(feats,dim=(-1,-2))
             elif self.pooling_strategy == 'max':
-                feats = torch.amax(feats,dim=(2,3))
+                feats = torch.amax(feats,dim=(-1,-2))
             
             feats = rearrange(feats,'b c t -> b (c t)')
             output = self.mlp(feats)

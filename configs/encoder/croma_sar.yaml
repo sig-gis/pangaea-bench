@@ -4,6 +4,7 @@ download_url: https://huggingface.co/antofuller/CROMA/resolve/main/CROMA_large.p
 
 input_size: 120  # the paper uses 120
 size: 'large'
+resize_pos_embed: ${dataset.img_size}
 
 input_bands:
   sar:
