@@ -24,7 +24,7 @@ class SegUPerNet(Decoder):
         self,
         encoder: Encoder,
         num_classes: int,
-        finetune: bool,
+        finetune: str,
         channels: int,
         pool_scales=(1, 2, 3, 6),
         feature_multiplier: int = 1,
@@ -41,9 +41,14 @@ class SegUPerNet(Decoder):
         self.finetune = finetune
         self.feature_multiplier = feature_multiplier
 
-        if not self.finetune:
+        if self.finetune == 'None':
             for param in self.encoder.parameters():
                 param.requires_grad = False
+        elif self.finetune == 'retrain_input':
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+            
+            self.encoder.unfreeze_input_layer()
 
         self.input_layers = self.encoder.output_layers
         self.input_layers_num = len(self.input_layers)

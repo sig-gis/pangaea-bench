@@ -143,6 +143,9 @@ class Prithvi_Encoder(Encoder):
 
 
         return self.pos_embed
+    def unfreeze_input_layer(self):
+        for param in self.patch_embed.parameters():
+            param.requires_grad = True
     
     def load_encoder_weights(self, logger: Logger) -> None:
         pretrained_model = torch.load(self.encoder_weights, map_location="cpu")

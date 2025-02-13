@@ -324,3 +324,7 @@ class DOFA_Encoder(Encoder):
             torch.zeros(1, self.num_patches + 1, self.embed_dim), requires_grad=False
         )
         self.img_size = ft_img_size
+
+    def unfreeze_input_layer(self):
+        for param in self.patch_embed.parameters():
+            param.requires_grad = True

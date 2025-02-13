@@ -16,7 +16,7 @@ class MLP(Decoder):
         self,
         encoder: Encoder,
         num_classes: int,
-        finetune: bool,
+        finetune: str,
         topology: Sequence[int],
         softmax: bool=True,
         interp_mode: str='bilinear',
@@ -38,11 +38,14 @@ class MLP(Decoder):
         self.topology = topology
         self.softmax= softmax
 
-        if not self.finetune:
+        if self.finetune == 'None':
             for param in self.encoder.parameters():
                 param.requires_grad = False
-        elif self.finetune == 'retrain_embed':
-            pass
+        elif self.finetune == 'retrain_input':
+            for param in self.encoder.parameters():
+                param.requires_grad = False
+
+            self.encoder.unfreeze_input_layer()
 
         if self.topology is None:
             self.topology = []

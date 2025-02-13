@@ -138,6 +138,10 @@ class CROMA_OPTICAL_Encoder(Encoder):
         )
         self.img_size = ft_img_size
 
+    def unfreeze_input_layer(self):
+        self.s2_encoder.unfreeze_input_layer()
+
+
 
 class CROMA_SAR_Encoder(Encoder):
     """
@@ -269,6 +273,8 @@ class CROMA_SAR_Encoder(Encoder):
             num_heads=self.num_heads, num_patches=self.num_patches
         )
         self.img_size = ft_img_size
+    def unfreeze_input_layer(self):
+        self.s1_encoder.unfreeze_input_layer()
 
 
 class CROMA_JOINT_Encoder(Encoder):
@@ -427,7 +433,9 @@ class CROMA_JOINT_Encoder(Encoder):
             num_heads=self.num_heads, num_patches=self.num_patches
         )
         self.img_size = ft_img_size
-
+    def unfreeze_input_layer(self):
+        self.s1_encoder.unfreeze_input_layer()
+        self.s2_encoder.unfreeze_input_layer()
 
 def get_2dalibi(num_heads, num_patches):
     # inspired by: https://github.com/ofirpress/attention_with_linear_biases
@@ -710,3 +718,6 @@ class ViT(nn.Module):
         )
 
         return output
+    def unfreeze_input_layer(self):
+        for param in self.linear_input.parameters():
+            param.requires_grad = True
