@@ -16,11 +16,14 @@ checkpoints/
 # Scenes for mados tiny
 # Wow gitignore pattern mathcing is a mess
 RD_*
+task_submission.yaml
 !data/mados
 data/mados/*
 !data/mados/splits
 data/mados/splits/*
 !data/mados/splits/tiny_X.txt
+Dockerfile
+docker-compose.yml
 
 .vscode
 .idea

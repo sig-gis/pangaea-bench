@@ -1,10 +1,10 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  namespace: training-workloads # DO NOT CHANGE
-  generateName: ###### ENTER TASK NAME HERE ######
+  namespace: eofm-benchmark # DO NOT CHANGE
+  generateName: pangaea-extensions-tests ###### ENTER TASK NAME HERE ######
   annotations:
-    kueue.x-k8s.io/queue-name: training-workloads # DO NOT CHANGE
+    kueue.x-k8s.io/queue-name: eofm-benchmark # DO NOT CHANGE
 spec:
   ttlSecondsAfterFinished: 60 # job will be deleted after 60 seconds post completion
   parallelism: 1 # how many replicas to run
@@ -15,7 +15,7 @@ spec:
       nodeSelector:
         cloud.google.com/gke-accelerator: "nvidia-tesla-a100" ###### ENTER GPU HERE ######
       containers:
-      - name: wasting-gpu-compute-time-baby
+      - name: pangaea-extension-test
         image: us-west1-docker.pkg.dev/pc464-mas-fvs/pangaea-bench/base:latest # link to artifact storage link
         command: ["torchrun", "--flag", "flag-value"] ###### ENTER ENTRY COMMAND HERE ######
         args: ["arg"]
