@@ -1,4 +1,4 @@
-_target_: pangaea.decoders.mlp.MLPMT
+_target_: pangaea.decoders.mlp.MLPMTCls
 
 encoder: null
 
@@ -9,3 +9,4 @@ finetune: ${finetune}
 
 multi_temporal_strategy: ltae
 softmax: true
+pooling_strategy: mean

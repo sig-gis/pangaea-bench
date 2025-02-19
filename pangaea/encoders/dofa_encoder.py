@@ -192,6 +192,7 @@ class DOFA_Encoder(Encoder):
         mlp_ratio=4.0,
         use_norm=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
+        resize_pos_embed=False
     ):
         super().__init__(
             model_name="dofa_encoder",
@@ -218,6 +219,7 @@ class DOFA_Encoder(Encoder):
         self.wv_list = [
             self.wave_list[m][bi] for m, b in self.input_bands.items() for bi in b
         ]
+        self.resize_pos_embed = resize_pos_embed
 
         self.norm = norm_layer(self.embed_dim)
 
@@ -243,7 +245,7 @@ class DOFA_Encoder(Encoder):
             ]
         )
 
-    def forward(self, image):
+    def forward(self, image,return_cls=False):
         # embed patches
         x = [image[m].squeeze(2) for m in self.input_bands.keys()]
         x = torch.cat(x, dim=1)
@@ -265,17 +267,30 @@ class DOFA_Encoder(Encoder):
             if i == len(self.blocks) - 1:
                 x = self.norm(x)
             if i in self.output_layers:
-                out = (
-                    x[:, 1:]
-                    .permute(0, 2, 1)
-                    .view(
-                        x.shape[0],
-                        -1,
-                        self.img_size // self.patch_size,
-                        self.img_size // self.patch_size,
+                if not return_cls:
+                    out = (
+                        x[:, 1:]
+                        .permute(0, 2, 1)
+                        .view(
+                            x.shape[0],
+                            -1,
+                            self.img_size // self.patch_size,
+                            self.img_size // self.patch_size,
+                        )
+                        .contiguous()
                     )
-                    .contiguous()
-                )
+                else:
+                    out = (
+                        x[:, :]
+                        .permute(0, 2, 1)
+                        .view(
+                            x.shape[0],
+                            -1,
+                            self.img_size // self.patch_size,
+                            self.img_size // self.patch_size,
+                        )
+                        .contiguous()
+                    )
 
                 output.append(out)
 
@@ -297,3 +312,19 @@ class DOFA_Encoder(Encoder):
 
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
+
+        if self.resize_pos_embed:
+            self.resize_input_layer(self.resize_pos_embed)
+
+
+
+    def resize_input_layer(self,ft_img_size):
+        self.num_patches = (ft_img_size // self.patch_size) ** 2
+        self.pos_embed = nn.Parameter(
+            torch.zeros(1, self.num_patches + 1, self.embed_dim), requires_grad=False
+        )
+        self.img_size = ft_img_size
+
+    def unfreeze_input_layer(self):
+        for param in self.patch_embed.parameters():
+            param.requires_grad = True

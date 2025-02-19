@@ -11,6 +11,8 @@ depth: 24
 num_heads: 16
 mlp_ratio: 4
 qkv_bias: True
+ft_image_size: ${dataset.img_size}
+ft_bands: ${dataset.bands}
   
 input_res: 1.
 

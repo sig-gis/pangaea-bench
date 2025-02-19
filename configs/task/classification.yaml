@@ -1,5 +1,5 @@
 trainer:
-  _target_: pangaea.engine.trainer.SegTrainer
+  _target_: pangaea.engine.trainer.ClsTrainer
   # params overwritten in run
   model: null
   train_loader: null
@@ -16,11 +16,11 @@ trainer:
   ckpt_interval: 20
   eval_interval: 5
   log_interval: 5
-  best_metric_key: mIoU
+  best_metric_key: mAcc
   use_wandb: ${use_wandb}
 
 evaluator:
-  _target_: pangaea.engine.evaluator.SegEvaluator
+  _target_: pangaea.engine.evaluator.ClsEvaluator
   # params overwritten in run
   val_loader: null
   exp_dir: null
@@ -28,5 +28,3 @@ evaluator:
   use_wandb: ${use_wandb}
   inference_mode: whole
   sliding_inference_batch: 8
-
-

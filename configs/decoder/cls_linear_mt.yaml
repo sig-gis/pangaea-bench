@@ -1,4 +1,4 @@
-_target_: pangaea.decoders.mlp.MLPMT
+_target_: pangaea.decoders.mlp.MLPMTCls
 
 encoder: null
 
@@ -7,5 +7,6 @@ num_classes: ${dataset.num_classes}
 multi_temporal: ${dataset.multi_temporal}
 finetune: ${finetune}
 
-multi_temporal_strategy: ltae
+multi_temporal_strategy: linear
 softmax: true
+pooling_strategy: max

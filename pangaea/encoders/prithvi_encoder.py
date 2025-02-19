@@ -57,6 +57,7 @@ class Prithvi_Encoder(Encoder):
         mlp_ratio=4.0,
         norm_layer=nn.LayerNorm,
         num_frames=1,
+        resize_pos_embed= False
     ):
         super().__init__(
             model_name="Prithvi",
@@ -76,6 +77,8 @@ class Prithvi_Encoder(Encoder):
 
         self.img_size = self.input_size
         self.tublet_size = tubelet_size
+
+        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != self.img_size else False
 
         if num_frames:
             self.num_frames = num_frames
@@ -114,6 +117,36 @@ class Prithvi_Encoder(Encoder):
 
         self.initialize_weights()
 
+        if self.resize_pos_embed:
+            print(self.resize_pos_embed)
+            self.resize_input(self.resize_pos_embed)
+            self.img_size = self.resize_pos_embed
+
+
+    def resize_input(self,ft_img_size)->None:
+        ft_img_size = (ft_img_size,ft_img_size)
+        self.patch_embed.grid_size = (
+            self.patch_embed.num_frames // self.patch_embed.tubelet_size,
+            ft_img_size[0] // self.patch_embed.patch_size[0],
+            ft_img_size[1] // self.patch_embed.patch_size[1],
+        )
+        self.patch_embed.num_patches = self.patch_embed.grid_size[0] * self.patch_embed.grid_size[1] * self.patch_embed.grid_size[2]
+
+        self.pos_embed = nn.Parameter(
+            torch.zeros(1, self.patch_embed.num_patches + 1, self.embed_dim), requires_grad=False
+        )
+
+        pos_embed = get_3d_sincos_pos_embed(
+            self.pos_embed.shape[-1], self.patch_embed.grid_size, cls_token=True
+        )
+        self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+
+
+        return self.pos_embed
+    def unfreeze_input_layer(self):
+        for param in self.patch_embed.parameters():
+            param.requires_grad = True
+    
     def load_encoder_weights(self, logger: Logger) -> None:
         pretrained_model = torch.load(self.encoder_weights, map_location="cpu")
         k = pretrained_model.keys()
@@ -167,6 +200,8 @@ class Prithvi_Encoder(Encoder):
         # embed patches
         x = image["optical"]
         x = self.patch_embed(x)
+
+        
 
         cls_tokens = self.cls_token.expand(x.shape[0], -1, -1)
         x = torch.cat((cls_tokens, x), dim=1)
