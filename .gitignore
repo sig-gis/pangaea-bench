@@ -23,3 +23,5 @@ data/mados/splits/*
 
 .vscode
 .idea
+Dockerfile
+docker-compose.yml
