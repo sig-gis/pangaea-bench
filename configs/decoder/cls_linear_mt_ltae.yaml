@@ -2,11 +2,11 @@ _target_: pangaea.decoders.mlp.MLPMTCls
 
 encoder: null
 
-topology: null
+topology: [512,512]
 num_classes: ${dataset.num_classes}
 multi_temporal: ${dataset.multi_temporal}
 finetune: ${finetune}
 
 multi_temporal_strategy: ltae
 softmax: true
-pooling_strategy: mean
+pooling_strategy: max

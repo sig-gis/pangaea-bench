@@ -41,7 +41,7 @@ class SegUPerNet(Decoder):
         self.finetune = finetune
         self.feature_multiplier = feature_multiplier
 
-        if self.finetune == 'None':
+        if not self.finetune or self.finetune == 'none':
             for param in self.encoder.parameters():
                 param.requires_grad = False
         elif self.finetune == 'retrain_input':

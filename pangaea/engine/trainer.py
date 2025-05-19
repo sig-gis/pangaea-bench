@@ -70,6 +70,7 @@ class Trainer:
         self.eval_interval = eval_interval
         self.log_interval = log_interval
         self.best_metric_key = best_metric_key
+        
 
         self.training_stats = {
             name: RunningAverageMeter(length=self.batch_per_epoch)
@@ -722,6 +723,8 @@ class ClsTrainer(Trainer):
             ):
                 logits = self.model(image)
                 loss = self.compute_loss(logits, target)
+
+                
 
             self.optimizer.zero_grad()
 

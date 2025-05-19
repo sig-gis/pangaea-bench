@@ -1,0 +1,1 @@
+gcloud batch jobs submit prithvimtbsupernet --project=eofm-benchmark --location=us-west1 --config=task.yaml

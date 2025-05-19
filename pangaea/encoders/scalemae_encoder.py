@@ -87,7 +87,7 @@ class ScaleMAE_Encoder(Encoder):
         self.img_size = input_size
         self.patch_size = patch_size
         self.ft_image_size = ft_image_size if ft_image_size != self.img_size else False
-        self.ft_bands = len(ft_bands['optical'])
+        self.ft_bands = len(ft_bands['optical']) if ft_bands else False
 
         self.input_res = torch.tensor([input_res]).float().cpu()
 
@@ -156,14 +156,14 @@ class ScaleMAE_Encoder(Encoder):
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
 
-        if self.ft_image_size and self.ft_bands:
+        if self.ft_image_size or self.ft_bands:
             self.resize_input_layer(self.ft_image_size,self.ft_bands)
     def resize_input_layer(self,ft_image_size,ft_bands):
         self.img_size = ft_image_size
-
-        self.patch_embed = PatchEmbedUnSafe(
-            self.img_size, self.patch_size, ft_bands, self.embed_dim
-        )
+        if self.ft_bands:
+            self.patch_embed = PatchEmbedUnSafe(
+                self.img_size, self.patch_size, ft_bands, self.embed_dim
+            )
     def unfreeze_input_layer(self):
         for param in self.patch_embed.parameters():
             param.requires_grad = True

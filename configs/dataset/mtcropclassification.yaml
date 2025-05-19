@@ -1,0 +1,72 @@
+_target_: pangaea.datasets.mtcropclassification.MTCropClassification
+dataset_name: MTCropClassifciation
+root_path:  ./data/multi_temporal_crop_segmentation
+download_url: None
+auto_download: False
+img_size: 224
+multi_temporal: 3
+multi_modal: False
+
+ignore_index: 0
+num_classes: 14
+classes:
+  - No Data
+  - Natural Vegitation
+  - Forest
+  - Corn
+  - Soybeans
+  - Wetlands
+  - Developed/Barren
+  - Open Water
+  - Winter Wheat
+  - Alfalfa
+  - Fallow/Idle Cropland
+  - Cotton
+  - Sorghum
+  - Other
+distribution:
+  - 0.0000
+  - 0.2015
+  - 0.1158
+  - 0.1386
+  - 0.1193
+  - 0.0862
+  - 0.0832
+  - 0.0234
+  - 0.0499
+  - 0.0355
+  - 0.0342
+  - 0.0254
+  - 0.0208
+  - 0.0655
+
+bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8A
+    - B11
+    - B12
+
+data_mean:
+  optical:
+    - 494.905781
+    - 815.239594
+    - 924.335066
+    - 2968.881459
+    - 2634.621962
+    - 1739.579917
+data_std:
+  optical:
+    - 284.925432
+    - 357.84876
+    - 575.566823
+    - 896.601013
+    - 951.900334
+    - 921.407808
+
+data_min:
+  optical: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000]
+data_max:
+  optical: [0.0000, 0.0000, 0.0000, 0.0000, 0.0000, 0.0000]

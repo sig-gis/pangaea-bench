@@ -169,7 +169,10 @@ class HLSBurnScars(RawGeoFMDataset):
                 "optical": image,
             },
             "target": target,
-            "metadata": {},
+            "metadata": {
+                'image_filename':self.image_list[index].split('/')[-1],
+                'target_filename':self.target_list[index].split('/')[-1]
+                },
         }
 
         return output

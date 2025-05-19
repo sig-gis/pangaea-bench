@@ -1,0 +1,15 @@
+{
+    "taskGroups": [
+        {
+            "taskSpec":{
+                "runnables":[
+                {
+                    "script" : {
+                        "text": "bash /mnt/disks/share/test_cls_pretrained.sh"
+                    }
+                }    
+                ]
+            }
+        }
+    ]
+}

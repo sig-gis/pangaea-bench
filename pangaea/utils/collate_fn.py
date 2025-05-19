@@ -4,7 +4,7 @@ import torch
 import torch.nn.functional as F
 
 
-def get_collate_fn(modalities: list[str]) -> Callable:
+def get_collate_fn(modalities: list[str], return_meta=False) -> Callable:
     def collate_fn(
         batch: dict[str, dict[str, torch.Tensor] | torch.Tensor],
     ) -> dict[str, dict[str, torch.Tensor] | torch.Tensor]:
@@ -37,13 +37,25 @@ def get_collate_fn(modalities: list[str]) -> Callable:
                             x["image"][modality], padding, "constant", 0
                         )
 
-        # stack all images and targets
-        return {
-            "image": {
-                modality: torch.stack([x["image"][modality] for x in batch])
-                for modality in modalities
-            },
-            "target": torch.stack([x["target"] for x in batch]),
-        }
+        if return_meta:
+            # stack all images and targets
+            return {
+                "image": {
+                    modality: torch.stack([x["image"][modality] for x in batch])
+                    for modality in modalities
+                },
+                "target": torch.stack([x["target"] for x in batch]),
+                "metadata":list([x['metadata'] for x in batch])
+            }
+        else:
+            # stack all images and targets
+            return {
+                "image": {
+                    modality: torch.stack([x["image"][modality] for x in batch])
+                    for modality in modalities
+                },
+                "target": torch.stack([x["target"] for x in batch])
+            }
+
 
     return collate_fn

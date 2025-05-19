@@ -1,0 +1,6 @@
+_target_: pangaea.decoders.segformer.SegFormerHead
+
+channels: 512
+encoder: null
+num_classes: ${dataset.num_classes}
+finetune: false

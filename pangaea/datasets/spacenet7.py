@@ -407,6 +407,9 @@ class SN7MAPPING(AbstractSN7):
         # for i, freq in enumerate(self.distribution):
         #     weight[target == i] = 1 - freq
 
+        # images must have (C T H W) shape
+        image = image.unsqueeze(1)
+
         output = {
             'image': {
                 'optical': image,

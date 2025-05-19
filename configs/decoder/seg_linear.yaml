@@ -5,4 +5,4 @@ encoder: null
 topology: null
 softmax: true
 num_classes: ${dataset.num_classes}
-finetune: retrain_input
+finetune: false

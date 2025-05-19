@@ -71,6 +71,13 @@ class Preprocessor(BasePreprocessor):
         meta = {}
         meta["dataset_img_size"] = dataset_cfg["img_size"]
         meta["encoder_input_size"] = encoder_cfg["input_size"]
+
+        # if encoder is using a different input size
+        if "resize_pos_embed" in encoder_cfg.keys():
+            meta["encoder_input_size"] = encoder_cfg["resize_pos_embed"]
+        elif "ft_image_size" in encoder_cfg.keys():
+            meta["encoder_input_size"] = encoder_cfg["ft_image_size"]
+        
         meta["dataset_bands"] = dataset_cfg["bands"]
         meta["encoder_bands"] = encoder_cfg["input_bands"]
         meta["multi_modal"] = dataset_cfg["multi_modal"]

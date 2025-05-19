@@ -16,6 +16,9 @@ checkpoints/
 # Scenes for mados tiny
 # Wow gitignore pattern mathcing is a mess
 RD_*
+embed/
+embeddings/
+remote_configs
 task_submission.yaml
 !data/mados
 data/mados/*

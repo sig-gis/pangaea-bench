@@ -38,7 +38,7 @@ class MLP(Decoder):
         self.topology = topology
         self.softmax= softmax
 
-        if self.finetune == 'None':
+        if not self.finetune:
             for param in self.encoder.parameters():
                 param.requires_grad = False
         elif self.finetune == 'retrain_input':
@@ -99,7 +99,7 @@ class MLP(Decoder):
                     feat = self.encoder(img)
             else:
                 feat = self.encoder(img)
-
+ 
             if self.encoder.multi_temporal_output:
 
                 feat = [f.squeeze(-3) for f in feat]
@@ -126,7 +126,7 @@ class MLP(Decoder):
         # output = indices
 
         output = rearrange(output,'(b h w) c -> b c h w',b=b,h=h,w=w)
-        output = F.interpolate(output,output_shape,mode=self.interp_mode,align_corners=self.align_corners)
+        output = F.interpolate(output,size=output_shape,mode=self.interp_mode,align_corners=self.align_corners)
 
         return output
 

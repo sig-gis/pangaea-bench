@@ -92,8 +92,15 @@ class FAOFRACd(RawGeoFMDataset):
 
         self.all_files, self.all_labels = self.get_all_files()
 
-        ts_train, ts_test,label_train, label_test = train_test_split(self.all_files,self.all_labels,test_size=self.test_size,random_state=self.seed,shuffle=self.shuffle)
-        ts_train, ts_val,label_train, label_val = train_test_split(ts_train,label_train,test_size=self.val_size,random_state=self.seed,shuffle=self.shuffle)
+        splits = np.load(os.path.join(self.root_path,'dataset_splits.npz'))
+
+        train_idxs = splits['train']
+        test_idxs = splits['test']
+        val_idxs = splits['val']
+
+        ts_train, label_train = self.all_files[train_idxs], self.all_labels[train_idxs]
+        ts_test, label_test = self.all_files[test_idxs], self.all_labels[test_idxs]
+        ts_val, label_val = self.all_files[val_idxs], self.all_labels[val_idxs]
 
         if self.split == 'train':
             self.ts = ts_train
@@ -108,7 +115,7 @@ class FAOFRACd(RawGeoFMDataset):
             all_files = []
             all_labels = []
             for gez in self.gezs:
-                folder = os.path.join(self.root_path,f'gez{gez}_hex_subsamples_tifs/')
+                folder = os.path.join(self.root_path,f'gez{gez}_hex_samples_tifs/')
 
                 files = np.array(sorted(glob(folder + '/**/*.tif',recursive=True)))
 

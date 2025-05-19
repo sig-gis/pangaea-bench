@@ -57,7 +57,8 @@ class Prithvi_Encoder(Encoder):
         mlp_ratio=4.0,
         norm_layer=nn.LayerNorm,
         num_frames=1,
-        resize_pos_embed= False
+        resize_pos_embed= False,
+        ft_bands=None
     ):
         super().__init__(
             model_name="Prithvi",
@@ -78,8 +79,6 @@ class Prithvi_Encoder(Encoder):
         self.img_size = self.input_size
         self.tublet_size = tubelet_size
 
-        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != self.img_size else False
-
         if num_frames:
             self.num_frames = num_frames
         else:
@@ -87,6 +86,15 @@ class Prithvi_Encoder(Encoder):
 
         self.patch_size = patch_size
         self.in_chans = in_chans
+
+        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != self.img_size else False
+        if ft_bands is not None:
+            self.ft_bands = None
+            if len(ft_bands['optical']) != in_chans:
+                self.ft_bands = len(ft_bands['optical'])
+        else:
+            self.ft_bands = None
+
         self.patch_embed = PatchEmbed(
             self.img_size,
             patch_size,
@@ -117,29 +125,50 @@ class Prithvi_Encoder(Encoder):
 
         self.initialize_weights()
 
-        if self.resize_pos_embed:
-            print(self.resize_pos_embed)
-            self.resize_input(self.resize_pos_embed)
+        if self.resize_pos_embed or self.ft_bands:
+            self.resize_input(self.resize_pos_embed,self.ft_bands)
             self.img_size = self.resize_pos_embed
 
 
-    def resize_input(self,ft_img_size)->None:
-        ft_img_size = (ft_img_size,ft_img_size)
-        self.patch_embed.grid_size = (
-            self.patch_embed.num_frames // self.patch_embed.tubelet_size,
-            ft_img_size[0] // self.patch_embed.patch_size[0],
-            ft_img_size[1] // self.patch_embed.patch_size[1],
-        )
-        self.patch_embed.num_patches = self.patch_embed.grid_size[0] * self.patch_embed.grid_size[1] * self.patch_embed.grid_size[2]
+    def resize_input(self,ft_img_size,ft_bands=None)->None:
+        if self.ft_bands is not None:
+            self.img_size = ft_img_size
+            self.in_chans = ft_bands
+            self.patch_embed = PatchEmbed(
+                self.img_size,
+                self.patch_size,
+                self.num_frames,
+                self.tublet_size,
+                self.in_chans,
+                self.embed_dim,
+            )
+            num_patches = self.patch_embed.num_patches
 
-        self.pos_embed = nn.Parameter(
-            torch.zeros(1, self.patch_embed.num_patches + 1, self.embed_dim), requires_grad=False
-        )
+            self.pos_embed = nn.Parameter(
+                torch.zeros(1, self.patch_embed.num_patches + 1, self.embed_dim), requires_grad=False
+            )
 
-        pos_embed = get_3d_sincos_pos_embed(
-            self.pos_embed.shape[-1], self.patch_embed.grid_size, cls_token=True
-        )
-        self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+            pos_embed = get_3d_sincos_pos_embed(
+                self.pos_embed.shape[-1], self.patch_embed.grid_size, cls_token=True
+            )
+            self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
+        else:
+            ft_img_size = (ft_img_size,ft_img_size)
+            self.patch_embed.grid_size = (
+                self.patch_embed.num_frames // self.patch_embed.tubelet_size,
+                ft_img_size[0] // self.patch_embed.patch_size[0],
+                ft_img_size[1] // self.patch_embed.patch_size[1],
+            )
+            self.patch_embed.num_patches = self.patch_embed.grid_size[0] * self.patch_embed.grid_size[1] * self.patch_embed.grid_size[2]
+
+            self.pos_embed = nn.Parameter(
+                torch.zeros(1, self.patch_embed.num_patches + 1, self.embed_dim), requires_grad=False
+            )
+
+            pos_embed = get_3d_sincos_pos_embed(
+                self.pos_embed.shape[-1], self.patch_embed.grid_size, cls_token=True
+            )
+            self.pos_embed.data.copy_(torch.from_numpy(pos_embed).float().unsqueeze(0))
 
 
         return self.pos_embed

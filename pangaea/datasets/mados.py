@@ -173,7 +173,9 @@ class MADOS(RawGeoFMDataset):
                 'optical': image,
             },
             'target': target,
-            'metadata': {}
+            'metadata': {
+                'image_filename':all_bands[0].split('/')[-1]
+            }
         }
 
         return output

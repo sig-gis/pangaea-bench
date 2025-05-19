@@ -1,0 +1,57 @@
+_target_: pangaea.datasets.mtbs.MTBSBurnSeverity
+dataset_name: MTBSBurnSeverity
+root_path: ./data/mtbs
+download_url: None
+auto_download: False
+img_size: 512
+multi_temporal: 3
+multi_modal: False
+
+ignore_index: 6
+num_classes: 7
+classes:
+  - Background
+  - Unburned to Low
+  - Low
+  - Moderate
+  - High
+  - Increased Greenness
+  - Non-Mapping Area
+
+distribution:
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+  - 0.0
+
+bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8A
+    - B11
+    - B12
+data_mean:
+  optical:
+    - 0.0405
+    - 0.0617
+    - 0.0712
+    - 0.1872
+    - 0.1726
+    - 0.1204
+data_std:
+  optical:
+    - 0.0003
+    - 0.0005
+    - 0.0010
+    - 0.0014
+    - 0.0031
+    - 0.0022
+data_min:
+  optical: [-0.2878 , -0.2727 , -0.3262 , -0.3754 , -0.40595, -0.30885]
+data_max:
+  optical: [1.35165, 1.38805, 1.48845, 1.5638 , 1.7758 , 2.1189]

@@ -1,5 +1,5 @@
-torch>=2.1.0
-torchvision
+torch==2.3.0
+torchvision==0.18.0
 geopandas
 rasterio
 pillow
@@ -10,6 +10,7 @@ tifffile
 timm
 einops
 opencv-python
+imagecodecs
 rioxarray
 gdown
 ptflops
@@ -20,4 +21,4 @@ pytest
 yacs
 wandb
 hydra-core
-
+wheel
