@@ -1,13 +1,16 @@
 #!/bin/bash
-#SBATCH --job-name=batch_jobs
-#SBATCH --output=logs/job_%A_%a.out
-#SBATCH --error=logs/job_%A_%a.err
-#SBATCH --array=0-14                   # 15 jobs: index 0 to 14
+#SBATCH --job-name=pangaea-bench-chroma
+#SBATCH --output=./logs/chroma_%a.out
+#SBATCH --error=./logs/chroma_%a.err
+#SBATCH --array=0-14
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=4
-#SBATCH --time=01:00:00
-#SBATCH --partition=general
+#SBATCH --cpus-per-task=8
+#SBATCH --partition=ewg
+#SBATCH --mem=96G
+#SBATCH --chdir=/ceoas/emapr/pangaea-bench
+
+conda activate pangaea-bench
 
 # Directory containing your bash scripts
 SCRIPT_DIR="./scripts/croma"
