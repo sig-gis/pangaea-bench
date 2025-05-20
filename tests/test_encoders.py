@@ -13,12 +13,14 @@ from pangaea.encoders.base import Encoder
 @pytest.mark.parametrize(
     "config_name",
     [
+        "anysat",
         "croma_joint",
         "croma_optical",
         "croma_sar",
         # "dofa",
         "gfmswin",
         # "prithvi"
+        # "prithvi_2"
         "remoteclip",
         "satlasnet",
         "scalemae",

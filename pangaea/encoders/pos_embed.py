@@ -40,6 +40,51 @@ def get_2d_sincos_pos_embed_with_resolution(
     return pos_embed
 
 
+def get_2d_sincos_pos_embed_with_scale(
+    embed_dim, grid_size, scale, cls_token=False, modis=False
+):
+    """
+    grid_size: int of the grid height and width
+    res: array of size n, representing the resolution of a pixel (say, in meters),
+    return:
+    pos_embed: dict of [n,grid_size*grid_size, embed_dim] or [n,1+grid_size*grid_size, embed_dim] (w/ or w/o cls_token)
+    """
+    grid_h = torch.arange(grid_size, dtype=torch.float32)
+    grid_w = torch.arange(grid_size, dtype=torch.float32)
+    grid = torch.meshgrid(
+        grid_w, grid_h, indexing="xy"
+    )  # here h goes first,direction reversed for numpy
+    grid = torch.stack(grid, dim=0)  # 2 x h x w
+
+    grid = torch.einsum("chw,n->cnhw", grid, torch.tensor([scale])) 
+    _, n, h, w = grid.shape
+    pos_embed = get_2d_sincos_pos_embed_from_grid_torch(
+        embed_dim, grid
+    )  #  # (nxH*W, D/2)
+    pos_embed = pos_embed.reshape(n, h * w, embed_dim)
+    if cls_token:
+        pos_embed = torch.cat(
+            [
+                torch.zeros(
+                    [n, 1, embed_dim], dtype=torch.float32, device=pos_embed.device
+                ),
+                pos_embed,
+            ],
+            dim=1,
+        )
+    if modis:
+        pos_embed = torch.cat(
+            [
+                torch.zeros(
+                    [n, 1, embed_dim], dtype=torch.float32, device=pos_embed.device
+                ),
+                pos_embed,
+            ],
+            dim=1,
+        )
+    return pos_embed
+
+
 def get_2d_sincos_pos_embed_from_grid(embed_dim, grid):
     assert embed_dim % 2 == 0
 
