@@ -1,4 +1,4 @@
-HYDRA_FULL_ERROR=1 torchrun pangaea/run.py \
+HYDRA_FULL_ERROR=1torchrun --rdzv-backend=c10d --rdzv-endpoint=localhost:0 --nnodes=1 pangaea/run.py \
     --config-name=train \
     dataset=mtcropclassification \
     encoder=dofa\

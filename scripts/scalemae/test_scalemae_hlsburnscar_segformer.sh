@@ -1,4 +1,4 @@
-TORCH_DISTRIBUTED_DEBUG=INFO torchrun pangaea/run.py \
+TORCH_DISTRIBUTED_DEBUG=INFOtorchrun --rdzv-backend=c10d --rdzv-endpoint=localhost:0 --nnodes=1 pangaea/run.py \
     --config-name=train \
     dataset=hlsburnscars \
     encoder=scalemae\

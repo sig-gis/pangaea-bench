@@ -9,7 +9,7 @@ This document provides a detailed overview of the datasets used in this reposito
    Below is a CLI example for running the experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
 
   ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=hlsburnscars \
    encoder=remoteclip \
@@ -27,7 +27,7 @@ This document provides a detailed overview of the datasets used in this reposito
    Below is a CLI example for running the experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
 
   ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=mados \
    encoder=remoteclip \
@@ -44,7 +44,7 @@ This document provides a detailed overview of the datasets used in this reposito
 - For models that don't support multi-temporal data, each time frame is processed separately for feature extraction and then mapped into a single representation. This setup requires the configuration file `configs/decoder/seg_upernet_mt_ltae.yaml`. Additionally, in the dataset configuration, specify the number of time frames, for example, `multi_temporal: 6`. Below is a CLI example for running the experiment using the RemoteCLIP pretrained encoder and multi-temporal UPerNet with L-TAE processing of temporal information:
 
   ```
-  torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+  torchrun pangaea/run.py \
    --config-name=train \
    dataset=pastis \
    encoder=remoteclip \
@@ -62,7 +62,7 @@ This document provides a detailed overview of the datasets used in this reposito
    Below is a CLI example for running the experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
 
   ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=sen1floods11 \
    encoder=remoteclip \
@@ -82,7 +82,7 @@ This document provides a detailed overview of the datasets used in this reposito
    ```
 - The basic experimental setup for this dataset is a change detection task. Two images showing the same location are encoded using a foundation model as encoder. A smaller UPerNet model is trained to compute the 5-class segmentation mask from these encodings. Below is a CLI example for running the experiment with the Prithvi pretrained encoder:
    ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=xview2 \
    encoder=prithvi \
@@ -101,7 +101,7 @@ This document provides a detailed overview of the datasets used in this reposito
    Below is a CLI example for running the experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
 
   ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=fivebillionpixels \
    encoder=remoteclip \
@@ -117,7 +117,7 @@ This document provides a detailed overview of the datasets used in this reposito
 - The basic experimental setup for this dataset is a multi-temporal semantic segmentation task. For models that don't support multi-temporal data, each time frame is processed separately for feature extraction and then mapped into a single representation. This setup requires the configuration file `configs/decoder/seg_upernet_mt_ltae.yaml` or `configs/decoder/seg_upernet_mt_linear.yaml`. Additionally, in the dataset configuration, specify the number of time frames, for example, `multi_temporal: 6`. Below is a CLI example for running the experiment using the RemoteCLIP pretrained encoder and multi-temporal UPerNet with L-TAE processing of temporal information:
 
   ```
-  torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+  torchrun pangaea/run.py \
    --config-name=train \
    dataset=dynamicearthnet \
    encoder=remoteclip \
@@ -135,7 +135,7 @@ This document provides a detailed overview of the datasets used in this reposito
 - The basic experimental setup for this dataset is a multi-temporal multi-modal semantic segmentation task. For models that don't support multi-temporal data, each time frame is processed separately for feature extraction and then mapped into a single representation. This setup requires the configuration file `configs/decoder/seg_upernet_mt_linear.yaml` or `configs/decoder/seg_upernet_mt_ltae.yaml`. Additionally, in the dataset configuration, specify the number of time frames, for example, `multi_temporal: 6`, where the latest six images are selected for both optical and SAR data. Below is a CLI example for running the experiment using the RemoteCLIP pretrained encoder and multi-temporal UPerNet with L-TAE processing of temporal information:
 
   ```
-  torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+  torchrun pangaea/run.py \
    --config-name=train \
    dataset=croptypemapping \
    encoder=remoteclip \
@@ -154,7 +154,7 @@ This document provides a detailed overview of the datasets used in this reposito
 - Below is a CLI example for running the building mapping (i.e. single temporal semantic segmentation) experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
 
   ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=spacenet7 \
    encoder=remoteclip \
@@ -165,7 +165,7 @@ This document provides a detailed overview of the datasets used in this reposito
   ```
 - Here is an example to run change detection:
     ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=spacenet7cd \
    encoder=remoteclip \
@@ -182,7 +182,7 @@ This document provides a detailed overview of the datasets used in this reposito
 - The dataset is uni-temporal, and the labels contain only two classes (farm boundary or background). For training using the RemoteCLIP encoder, the following command should be used:
 
   ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=ai4smallfarms \
    encoder=remoteclip \
@@ -196,7 +196,7 @@ This document provides a detailed overview of the datasets used in this reposito
 - The code is not supporting the automatic download. It will come soon.
 - The dataset is multi-modal and multi-temporal, so a default command of using DOFA model is:
   ```
-   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   torchrun pangaea/run.py \
    --config-name=train \
    dataset=biomassters \
    encoder=dofa \
@@ -207,7 +207,7 @@ This document provides a detailed overview of the datasets used in this reposito
   ```
 - If you want to try single temporal regression, you can use:
     ```
-    torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+    torchrun pangaea/run.py \
    --config-name=train \
    dataset=biomassters \
    encoder=dofa \

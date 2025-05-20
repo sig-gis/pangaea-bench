@@ -160,7 +160,7 @@ We have designed the repo to allow for benchmarking your own model with minimal 
    - **Example Command**:
 
      ```bash
-      torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+      torchrun pangaea/run.py \
       --config-name=train \
       dataset=hlsburnscars \
       encoder=my_model \
@@ -339,7 +339,7 @@ We have designed the repo to allow for using your own datasets with minimal effo
    - **Example Command**:
 
      ```bash
-      torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+      torchrun pangaea/run.py \
       --config-name=train \
       dataset=my_dataset \
       encoder=prithvi \

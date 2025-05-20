@@ -32,3 +32,4 @@ docker-compose.yml
 .idea
 Dockerfile
 docker-compose.yml
+logs

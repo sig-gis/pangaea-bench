@@ -1,8 +1,11 @@
+import collections
 import hashlib
+import omegaconf
 import os as os
 import pathlib
 import pprint
 import time
+import typing
 
 import hydra
 import torch
@@ -28,6 +31,10 @@ from pangaea.utils.utils import (
     get_generator,
     seed_worker,
 )
+
+
+# This is a workaround for the issue with torch load and omegaconf
+torch.serialization.add_safe_globals([omegaconf.listconfig.ListConfig, omegaconf.base.ContainerMetadata, omegaconf.base.Metadata, omegaconf.nodes.AnyNode, typing.Any, list, collections.defaultdict, dict, int])
 
 
 def get_exp_info(hydra_config: HydraConf) -> dict[str, str]:
@@ -70,9 +77,9 @@ def main(cfg: DictConfig) -> None:
     fix_seed(cfg.seed)
     # distributed training variables
     rank = int(os.environ["RANK"])
-    local_rank = int(os.environ["LOCAL_RANK"])
+    local_rank = int(os.environ["LOCAL_RANK_GPU"])
     device = torch.device("cuda", local_rank)
-
+    
     torch.cuda.set_device(device)
     torch.distributed.init_process_group(backend="nccl")
 
@@ -121,6 +128,7 @@ def main(cfg: DictConfig) -> None:
 
     logger = init_logger(logger_path, rank=rank)
     logger.info("============ Initialized logger ============")
+    logger.info(f"Rank: {rank}, Local rank: {local_rank}, Device: {device}")
     logger.info(pprint.pformat(OmegaConf.to_container(cfg), compact=True).strip("{}"))
     logger.info("The experiment is stored in %s\n" % exp_dir)
     logger.info(f"Device used: {device}")
