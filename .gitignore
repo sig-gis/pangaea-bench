@@ -25,10 +25,8 @@ data/mados/*
 !data/mados/splits
 data/mados/splits/*
 !data/mados/splits/tiny_X.txt
-Dockerfile
 docker-compose.yml
 
 .vscode
 .idea
-Dockerfile
 docker-compose.yml
