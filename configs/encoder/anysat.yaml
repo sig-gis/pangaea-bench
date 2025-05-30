@@ -1,0 +1,255 @@
+_target_: pangaea.encoders.anysat_encoder.AnySat_Encoder
+encoder_weights: ./pretrained_models/AnySat.pt
+download_url: https://huggingface.co/g-astruc/AnySat/resolve/main/models/AnySat.pth
+
+input_size: 120  # the paper uses 120
+size: 'large'
+resize_pos_embed: ${dataset.img_size}
+
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B11
+    - B12
+  sar:
+    - VV
+    - VH
+
+output_layers:
+  - 11
+
+output_dim: 768
+
+modalities:
+  all:
+    - "aerial"
+    - "aerial-flair"
+    - "spot"
+    - "naip"
+    - "s2"
+    - "s1-asc"
+    - "s1"
+    - "alos"
+    - "l7"
+    - "l8"
+    - "modis"
+projectors:
+  aerial:
+    _target_: pangaea.encoders.anysat_utils.utils.PatchMLPMulti
+    patch_size: 10
+    in_chans: 4
+    embed_dim: ${encoder.embed_dim}
+    bias: ${encoder.pre_norm}
+    mlp: 
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+  aerial-flair:
+    _target_: pangaea.encoders.anysat_utils.utils.PatchMLPMulti
+    patch_size: 10
+    in_chans: 5
+    embed_dim: ${encoder.embed_dim}
+    bias: ${encoder.pre_norm}
+    mlp: 
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+  spot:
+    _target_: pangaea.encoders.anysat_utils.utils.PatchMLPMulti
+    patch_size: 10
+    in_chans: 3
+    resolution: 1.0
+    embed_dim: ${encoder.embed_dim}
+    bias: ${encoder.pre_norm}
+    mlp:
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+  naip:
+    _target_: pangaea.encoders.anysat_utils.utils.PatchMLPMulti
+    patch_size: 8
+    in_chans: 4
+    resolution: 1.25
+    embed_dim: ${encoder.embed_dim}
+    bias: ${encoder.pre_norm}
+    mlp: 
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+  s2:
+    _target_: pangaea.encoders.anysat_utils.ltae.PatchLTAEMulti
+    in_channels: 10
+    n_head: 16
+    d_k: 8
+    mlp:
+      - ${encoder.embed_dim}
+    mlp_in:
+      - ${eval:'${encoder.embed_dim} // 8'}
+      - ${eval:'${encoder.embed_dim} // 2'}
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+    dropout: 0.0
+    T: 367
+    in_norm: True
+    return_att: False
+    positional_encoding: True
+  s1-asc:
+    _target_: pangaea.encoders.anysat_utils.ltae.PatchLTAEMulti
+    in_channels: 2
+    n_head: 16
+    d_k: 8
+    mlp:
+      - ${encoder.embed_dim}
+    mlp_in:
+      - ${eval:'${encoder.embed_dim} // 8'}
+      - ${eval:'${encoder.embed_dim} // 2'}
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+    dropout: 0.2
+    T: 367
+    in_norm: False
+    return_att: False
+    positional_encoding: True
+  s1:
+    _target_: pangaea.encoders.anysat_utils.ltae.PatchLTAEMulti
+    in_channels: 3
+    n_head: 16
+    d_k: 8
+    mlp:
+      - ${encoder.embed_dim}
+    mlp_in:
+      - ${eval:'${encoder.embed_dim} // 8'}
+      - ${eval:'${encoder.embed_dim} // 2'}
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+    dropout: 0.2
+    T: 367
+    in_norm: False
+    return_att: False
+    positional_encoding: True
+  alos:
+    _target_: pangaea.encoders.anysat_utils.ltae.PatchLTAEMulti
+    in_channels: 3
+    n_head: 16
+    d_k: 8
+    mlp:
+      - ${encoder.embed_dim}
+    mlp_in:
+      - ${eval:'${encoder.embed_dim} // 8'}
+      - ${eval:'${encoder.embed_dim} // 2'}
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+    dropout: 0.2
+    T: 367
+    in_norm: False
+    return_att: False
+    positional_encoding: True
+    reduce_scale: 3 
+  l7:
+    _target_: pangaea.encoders.anysat_utils.ltae.PatchLTAEMulti
+    in_channels: 6
+    n_head: 16
+    d_k: 8
+    mlp:
+      - ${encoder.embed_dim}
+    mlp_in:
+      - ${eval:'${encoder.embed_dim} // 8'}
+      - ${eval:'${encoder.embed_dim} // 2'}
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+    dropout: 0.2
+    T: 367
+    in_norm: False
+    return_att: False
+    positional_encoding: True
+    reduce_scale: 3
+  l8:
+    _target_: pangaea.encoders.anysat_utils.ltae.PatchLTAEMulti
+    in_channels: 11
+    n_head: 16
+    d_k: 8
+    mlp:
+      - ${encoder.embed_dim}
+    mlp_in:
+      - ${eval:'${encoder.embed_dim} // 8'}
+      - ${eval:'${encoder.embed_dim} // 2'}
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+    dropout: 0.
+    T: 366
+    in_norm: False
+    return_att: False
+    positional_encoding: True
+  modis:
+    _target_: pangaea.encoders.anysat_utils.ltae.PatchLTAEMulti
+    in_channels: 7
+    n_head: 16
+    d_k: 8
+    mlp:
+      - ${encoder.embed_dim}
+    mlp_in:
+      - ${eval:'${encoder.embed_dim} // 8'}
+      - ${eval:'${encoder.embed_dim} // 2'}
+      - ${encoder.embed_dim}
+      - ${eval:'${encoder.embed_dim} * 2'}
+      - ${encoder.embed_dim}
+    dropout: 0.2
+    T: 367
+    in_norm: False
+    return_att: False
+    positional_encoding: True
+    reduce_scale: 12
+
+spatial_encoder:
+  _target_: pangaea.encoders.anysat_utils.transformers.TransformerMulti
+  embed_dim: ${encoder.embed_dim}
+  depth: ${encoder.depth}
+  num_heads: ${encoder.num_heads}
+  mlp_ratio: 4.0
+  attn_drop_rate: 0.0
+  drop_path_rate: 0.0
+  modalities: ${encoder.modalities}
+  scales: {}
+  input_res:
+    aerial: ${eval:'${encoder.projectors.aerial.patch_size} * 0.2'}
+    aerial-flair: ${eval:'${encoder.projectors.aerial-flair.patch_size} * 0.2'}
+    spot: ${eval:'${encoder.projectors.spot.patch_size} * 1'}
+    naip: ${eval:'${encoder.projectors.naip.patch_size} * 1.25'}
+    s2: 10
+    s1-asc: 10
+    s1-des: 10
+    s1: 10
+    l8: 10
+    l7: 30
+    alos: 30
+    modis: 250
+
+num_patches: {}
+embed_dim: 768
+depth: 6
+num_heads: 12
+mlp_ratio: 4.
+class_token: True
+pre_norm: False
+drop_rate: 0.0
+patch_drop_rate: 0.0
+drop_path_rate: 0.0
+attn_drop_rate: 0.0
+scales: {}
+flash_attn: False
+release: True

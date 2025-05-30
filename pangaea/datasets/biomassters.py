@@ -139,7 +139,7 @@ class BioMassters(RawGeoFMDataset):
         self.download_url = download_url
         self.auto_download = auto_download
         
-        self.data_path = pathlib.Path(self.root_path).joinpath(f"{split}_Data_list.csv")
+        self.data_path = pathlib.Path(self.root_path).joinpath(f"{split}_data_list.csv")
         self.id_list = pd.read_csv(self.data_path)['chip_id']
         
         self.split_path = 'train' if split == 'val' else split

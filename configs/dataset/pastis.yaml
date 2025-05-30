@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.pastis.Pastis
 dataset_name: Pastis
-root_path: mnt/disks/eofm-benchmark/data/PASTIS-HD
+root_path: ./data/pastis-hd
 download_url: null
 auto_download: False
 

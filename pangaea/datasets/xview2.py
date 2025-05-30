@@ -116,12 +116,12 @@ class xView2(RawGeoFMDataset):
         if self.split == "test":
             data_dirs = [os.path.join(self.root_path, "test")]
         else:
-            # Train and val consist of the smaller train and the larger tier3 set.
-            data_dirs = [os.path.join(self.root_path, d) for d in ["train", "tier3"]]
+            # Train and val consist of the smaller tier1 and the larger tier3 set.
+            data_dirs = [os.path.join(self.root_path, d) for d in ["tier1", "tier3"]]
 
         for d in data_dirs:
             for f in sorted(os.listdir(os.path.join(d, 'images'))):
-                if '_pre_disaster.png' in f:
+                if '_pre_disaster.tif' in f:
                     all_files.append(os.path.join(d, 'images', f))
         
         if self.split != "test":
@@ -145,7 +145,7 @@ class xView2(RawGeoFMDataset):
             map(lambda path: pathlib.Path(path).name.split("_")[0], all_files))
         train_idxs, val_idxs = train_test_split(np.arange(len(all_files)),
                                                 test_size=0.1,
-                                                random_state=23,
+                                                random_state=42,
                                                 stratify=disaster_names)
         return {"train": train_idxs, "val": val_idxs}
 

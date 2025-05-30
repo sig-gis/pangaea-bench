@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.utae_dynamicen.DynamicEarthNet
 dataset_name: DynamicEarthNet
-root_path: ./data/DynamicEarthNet
+root_path: ./data/dynamicearthnet
 download_url: None
 auto_download: False
 
@@ -34,7 +34,6 @@ sample_dates:
   - 20
   - 25
 
-# data stats
 bands:
   optical:
     - B2

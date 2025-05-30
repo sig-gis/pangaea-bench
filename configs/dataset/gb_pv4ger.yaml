@@ -1,0 +1,19 @@
+bands:
+  optical:
+    - "Blue"
+    - "Green"
+    - "Red"
+data_mean:
+  optical:
+    - 116.628328
+    - 119.65935
+    - 113.385309
+data_std:
+  optical:
+    - 44.668890717415586
+    - 48.282311849967364
+    - 54.19692448815262
+data_min:
+  optical: [7.0, 11.0, 1.0]
+data_max:
+  optical: [254.0, 254.0, 254.0]

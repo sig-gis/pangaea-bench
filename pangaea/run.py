@@ -126,7 +126,8 @@ def main(cfg: DictConfig) -> None:
     logger.info(f"Device used: {device}")
 
     encoder: Encoder = instantiate(cfg.encoder)
-    encoder.load_encoder_weights(logger)
+    if cfg.pretrained:
+        encoder.load_encoder_weights(logger)
     logger.info("Built {}.".format(encoder.model_name))
 
     # prepare the decoder (segmentation/regression)

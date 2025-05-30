@@ -4,7 +4,7 @@ This document provides a detailed overview of the datasets used in this reposito
 
 ### HLSBurnScars
 
-- The code supports automatic downloading of the dataset into `./data` folder. 
+- The code supports automatic downloading of the dataset into `/data` folder. 
 - The basic experiment uses mean and std values for normalization and applies random cropping to align images with the size used for GFMs pretraining.
    Below is a CLI example for running the experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
 
@@ -21,7 +21,7 @@ This document provides a detailed overview of the datasets used in this reposito
   
 ### MADOS
 
-- The code supports automatic downloading of the dataset into `./data` folder. 
+- The code supports automatic downloading of the dataset into `/data` folder. 
 - Random cropping to encoder size is done with focus cropping. This avoids batches with no loss, caused by the high ratio of unlabeled pixels ion the dataset.
 - The basic experiment uses mean and std values for normalization and applies random cropping to align images with the size used for GFMs pretraining.
    Below is a CLI example for running the experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
@@ -39,7 +39,7 @@ This document provides a detailed overview of the datasets used in this reposito
   
 ### PASTIS-R
 
-- The code supports automatic downloading of the dataset into `./data` folder.
+- The code supports automatic downloading of the dataset into `/data` folder.
 - Images are 128x128 patches, so a resize is needed to match input_size requirements of the encoders.
 - For models that don't support multi-temporal data, each time frame is processed separately for feature extraction and then mapped into a single representation. This setup requires the configuration file `configs/decoder/seg_upernet_mt_ltae.yaml`. Additionally, in the dataset configuration, specify the number of time frames, for example, `multi_temporal: 6`. Below is a CLI example for running the experiment using the RemoteCLIP pretrained encoder and multi-temporal UPerNet with L-TAE processing of temporal information:
 
@@ -57,7 +57,7 @@ This document provides a detailed overview of the datasets used in this reposito
   
 ###  Sen1Floods11
 
-- The code supports automatic downloading of the dataset into `./data` folder. 
+- The code supports automatic downloading of the dataset into `/data` folder. 
 - The basic experiment uses mean and std values for normalization and applies random cropping to align images with the size used for GFMs pretraining.
    Below is a CLI example for running the experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
 
@@ -74,7 +74,7 @@ This document provides a detailed overview of the datasets used in this reposito
   
 ### xView2
 
-- The dataset needs to be downloaded manually from the official website. This requires a registration and accepting the terms and conditions. On the download page, we need the datasets under `Datasets from the Challenge`, excluding the holdout set. Extract the datasets in the `./data/xView2/` folder, such that it contains e.g. `./data/xView2/tier3/images/...`.
+- The dataset needs to be downloaded manually from the official website. This requires a registration and accepting the terms and conditions. On the download page, we need the datasets under `Datasets from the Challenge`, excluding the holdout set. Extract the datasets in the `/data/xView2/` folder, such that it contains e.g. `/data/xView2/tier3/images/...`.
 - The `tier3` set does not come up labels in the form of images, so we first need to create them from the respective JSON data. We create a `masks` folder on the level of the `images` folder by running:
 
   ```
@@ -113,7 +113,7 @@ This document provides a detailed overview of the datasets used in this reposito
 
 ### DynamicEarthNet
 
-- The code supports automatic downloading of the dataset into `./data` folder.
+- The code supports automatic downloading of the dataset into `/data` folder.
 - The basic experimental setup for this dataset is a multi-temporal semantic segmentation task. For models that don't support multi-temporal data, each time frame is processed separately for feature extraction and then mapped into a single representation. This setup requires the configuration file `configs/decoder/seg_upernet_mt_ltae.yaml` or `configs/decoder/seg_upernet_mt_linear.yaml`. Additionally, in the dataset configuration, specify the number of time frames, for example, `multi_temporal: 6`. Below is a CLI example for running the experiment using the RemoteCLIP pretrained encoder and multi-temporal UPerNet with L-TAE processing of temporal information:
 
   ```
@@ -129,7 +129,7 @@ This document provides a detailed overview of the datasets used in this reposito
   
 ###  Crop Type Mapping (South Sudan)
 
-- The code supports automatic downloading of the dataset into `./data` folder.
+- The code supports automatic downloading of the dataset into `/data` folder.
 - Images are 64x64 patches, so a resize is needed to match input_size requirements of the encoders.
 - The original dataset contains corrupted files, which are skipped during the experiment. We follow the dataset paper to use the most frequent 4 classes and the others are ignored.
 - The basic experimental setup for this dataset is a multi-temporal multi-modal semantic segmentation task. For models that don't support multi-temporal data, each time frame is processed separately for feature extraction and then mapped into a single representation. This setup requires the configuration file `configs/decoder/seg_upernet_mt_linear.yaml` or `configs/decoder/seg_upernet_mt_ltae.yaml`. Additionally, in the dataset configuration, specify the number of time frames, for example, `multi_temporal: 6`, where the latest six images are selected for both optical and SAR data. Below is a CLI example for running the experiment using the RemoteCLIP pretrained encoder and multi-temporal UPerNet with L-TAE processing of temporal information:
@@ -148,7 +148,7 @@ This document provides a detailed overview of the datasets used in this reposito
 
 ### SpaceNet 7
 
-- The code supports automatic downloading of the dataset into `./data` folder.
+- The code supports automatic downloading of the dataset into `/data` folder.
 - The basic experiment uses mean and std values for normalization and applies random cropping to align images with the size used for GFMs pretraining.
 - The dataset supports building mapping and change detection.
 - Below is a CLI example for running the building mapping (i.e. single temporal semantic segmentation) experiment with the RemoteClip pretrained encoder and UperNet segmentation decoder:
@@ -177,7 +177,7 @@ This document provides a detailed overview of the datasets used in this reposito
 
 ###  AI4SmallFarms
 
-- The code supports automatic downloading of the dataset into `./data` folder.
+- The code supports automatic downloading of the dataset into `/data` folder.
 - The original dataset contains vector files as well as Google Maps (GM) files, which are skipped during the experiment. Only the .tif Sentinel-2 images and delineation labels are kept after downloading.
 - The dataset is uni-temporal, and the labels contain only two classes (farm boundary or background). For training using the RemoteCLIP encoder, the following command should be used:
 

@@ -46,7 +46,7 @@ from shapely.wkt import loads
 from shapely.geometry import mapping, Polygon
 
 
-root_dir = "/home/rpdemilt/SIG/GFMBenchmark/pangaea-bench/data/xView2/"
+root_dir = "./data/xView2/"
 masks_dir = 'masks'
 
 train_dirs = ['train', 'tier3', 'test']

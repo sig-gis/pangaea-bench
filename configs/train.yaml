@@ -1,8 +1,9 @@
 train: true
-work_dir: "mnt/disks/eofm-benchmark/checkpoints/"
+work_dir: "./checkpoints/"
 seed: 234
-use_wandb: false
+use_wandb: true
 wandb_run_id: null
+pretrained: true
 
 # TRAINING
 num_workers: 0

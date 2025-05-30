@@ -3,12 +3,17 @@ taskGroups:
     runnables:
     - container:
         imageUri: us-west1-docker.pkg.dev/eofm-benchmark/pangaea-bench/pangaea
-        commands:
-          - scripts/prithvi/test_prithvi_mtbs_upernet.sh
+        commands: # commands to run in the container entered by --container-commands-file flag in submit_job.sh
     volumes:
     - gcs:
-        remotePath: "eofm-benchmark"
-      mountPath: "/mnt/disks/eofm-benchmark"
+        remotePath: "eofm-benchmark/data"
+      mountPath: "/data"
+    - gcs:
+        remotePath: "eofm-benchmark/pretrained_models"
+      mountPath: "/pretrained_models"
+    - gcs:
+        remotePath: "eofm-benchmark/checkpoints"
+      mountPath: "/checkpoints"
     computeResource:
         cpuMilli: 12000
         memoryMib: 85000

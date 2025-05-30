@@ -285,7 +285,7 @@ We have designed the repo to allow for using your own datasets with minimal effo
      ```yaml
      _target_: pangaea.datasets.utae_dynamicen.DynamicEarthNet
      dataset_name: MyDataset
-     root_path: ./data/my_data_dir
+     root_path: /data/my_data_dir
      download_url: None
      auto_download: False
      img_size: 256
