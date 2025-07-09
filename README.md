@@ -1,8 +1,44 @@
 [![Tests](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml/badge.svg)](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml)
+<p align="center">
+  <img src=".github/pangaea-banner.png" alt="PANGAEA" width="480"/>
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2412.04204">
+    <img
+      src="https://badgen.net/badge/paper/arXiv/red"
+      alt="PANGAEA Paper"
+    />
+    </a>
+    <a href="https://www.eotdl.com/datasets">
+      <img
+         src="https://badgen.net/badge/Pangaea/Datasets/purple"
+         alt="PANGAEA Datasets"
+      />
+   </a>
+   <a href="https://www.eotdl.com/models">
+      <img
+         src="https://badgen.net/badge/Pangaea/Models/green"
+         alt="PANGAEA Models"
+      />
+   </a>
+   <a href="https://philabchallenges.vercel.app/pangaea/leaderboard">
+      <img
+         src="https://badgen.net/badge/Pangaea/Leaderboard/orange"
+         alt="PANGAEA Models"
+      />
+   </a>
+</p>
+
 
 # PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
 
-🔥 The [pre-print](https://arxiv.org/abs/2412.04204) is out!
+
+📢 **News**
+ - [04/06/2025] We integrate [Geo-Bench](https://arxiv.org/abs/2306.03831) Datasets, including six segmentation and six classification tasks.
+ <!-- - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned! -->
+ - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). We will release the benchmarking code in PANGAEA very soon!
+ - [05/12/2024] the [pre-print](https://arxiv.org/abs/2412.04204) is out!
 
 ## 📚 Introduction
 
@@ -47,12 +83,19 @@ And the following **datasets**:
 |    [AI4SmallFarms](https://ieeexplore.ieee.org/document/10278130)  | [link](https://doi.org/10.17026/dans-xy6-ngg6)  |  Agriculture     |  Semantic segmentation  |   S2   | Cambodia/Vietnam |
 |     [BioMassters](https://papers.nips.cc/paper_files/paper/2023/file/40daf2a00278c4bea1b26cd4c8a654f8-Paper-Datasets_and_Benchmarks.pdf)     |   [link](https://huggingface.co/datasets/nascetti-a/BioMassters)       | Forest       | Regression   |  S1, S2 | Finland   |
 
+**Note**: The following datasets are **community-contributed** and are not part of the original benchmark repository. We are grateful for these contributions, which help enrich the benchmark's diversity and applicability.
+- **Potsdam dataset** [[Link](https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
+- **Open-Canopy** [[Link](https://arxiv.org/abs/2407.09392)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
+- **Geo-Bench datasets** [[Link](https://github.com/ServiceNow/geo-bench)]. Contributed by [@yurujaja](https://github.com/yurujaja).
+
 The repository supports the following **tasks** using geospatial (foundation) models:
  - [Single Temporal Semantic Segmentation](#single-temporal-semantic-segmentation)
  - [Multi-Temporal Semantic Segmentation](#multi-temporal-semantic-segmentation)
  - [Change Detection](#change-detection)
  - [Single Temporal Regression](#single-temporal-regression)
  - [Multi-Temporal Regression](#multi-temporal-regression)
+ - [Linear Classification](#linear-classification)
+ - [KNN Probe Classification](#knn-probe-classification)
 
 It is also possible to train some [supervised baselines](#-fully-supervised-baseline), based on UNet and ViT.
 
@@ -241,6 +284,66 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 To use SatlasNet encoder, please refer to the multi-temporal semantic segmentation example.
 To overwrite parameters, please check the Single Temporal Semantic Segmentation example.
 
+#### Linear Classification
+
+For linear classification, you can use either single-label or multi-label classification depending on your dataset. The main difference is in the task config and criterion used.
+
+For single-label classification (e.g. m-Brick-Kiln dataset):
+```
+export GEO_BENCH_DIR=YOUR/PATH/DIR   # Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required for Geo-Bench datasets.
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=mbrickkiln \
+   encoder=remoteclip \
+   decoder=cls_linear \
+   preprocessing=cls_resize \
+   criterion=cross_entropy \
+   task=linear_classification \
+   task.trainer.n_epochs=50 \
+   batch_size=16 \
+   finetune=false
+```
+
+For multi-label classification (e.g. MBigEarthNet dataset):
+```
+export GEO_BENCH_DIR=YOUR/PATH/DIR   # Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required for Geo-Bench datasets.
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=mbigearthnet \
+   encoder=remoteclip \
+   decoder=cls_linear \
+   preprocessing=cls_resize \
+   criterion=binary_cross_entropy \
+   task=linear_classification_multi_label \
+   task.trainer.n_epochs=50 \
+   batch_size=16 \
+   finetune=false
+```
+
+#### KNN Probe Classification
+
+For KNN probe classification, you'll use a different decoder and task config. This is useful for evaluating the quality of learned representations without any fine-tuning. Here's an example using the m-EuroSat dataset:
+
+```
+export GEO_BENCH_DIR=YOUR/PATH/DIR   # Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required for Geo-Bench datasets.
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=meurosat \
+   encoder=remoteclip \
+   decoder=cls_knn \
+   preprocessing=cls_resize \
+   criterion=none \
+   task=knn_probe \
+   batch_size=32 \
+   finetune=false
+```
+
+Note that for KNN probe:
+- The criterion is set to `none` since no training is performed
+- The batch size can be larger since we're only doing inference
+- `finetune` is set to `false` as we're only using the pre-trained encoder
+
+
 ### 💻 End-to-end Finetuning
 
 It is enough to add `finetune=True` to the command line.
@@ -293,11 +396,11 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 
 ### Using Your Own Dataset
 
-Refer to: [Adding a new downstream dataset](.github/CONTRIBUTING.md#adding-a-new-downstream-dataset)
+Refer to: [Adding a new downstream dataset](CONTRIBUTING.md#adding-a-new-downstream-dataset)
 
 ### Using Your Own Model
 
-Refer to: [Adding a new geospatial foundation model](.github/CONTRIBUTING.md#adding-a-new-geospatial-foundation-model)
+Refer to: [Adding a new geospatial foundation model](CONTRIBUTING.md#adding-a-new-geospatial-foundation-model)
 
 ## 🏃 Evaluation 
 
@@ -310,7 +413,7 @@ torchrun pangaea/run.py --config-name=test ckpt_dir=path_to_ckpt_dir
 ```
 
 ## ✏️ Contributing
-We appreciate all contributions. Please refer to [Contributing Guidelines](.github/CONTRIBUTING.md).
+We appreciate all contributions. Please refer to [Contributing Guidelines](CONTRIBUTING.md).
 
 ## ⚠️ TO DO
 
@@ -342,3 +445,6 @@ If you find this work useful, please cite:
       url={https://arxiv.org/abs/2412.04204}, 
 }
 ```
+##  Acknowledge
+
+The computations/data handling were enabled by resources provided by the National Academic Infrastructure for Supercomputing in Sweden (NAISS), partially funded by the Swedish Research Council through grant agreement no. 2022-06725.

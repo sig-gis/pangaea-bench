@@ -115,7 +115,7 @@ class AI4SmallFarms(RawGeoFMDataset):
         target = target.astype(np.int64)  # Convert to int64 (since it's a mask)
 
         image = torch.from_numpy(image).permute(2, 0, 1)
-        target = torch.from_numpy(target).long()
+        target = (torch.from_numpy(target) / 255).long()
 
         # Handle invalid data if any
         invalid_mask = torch.isnan(image)

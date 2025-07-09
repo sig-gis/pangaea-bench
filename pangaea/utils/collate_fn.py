@@ -57,5 +57,3 @@ def get_collate_fn(modalities: list[str], return_meta=False) -> Callable:
                 "target": torch.stack([x["target"] for x in batch])
             }
 
-
-    return collate_fn
