@@ -1,8 +1,8 @@
 torchrun pangaea/run.py \
     --config-name=train \
-    dataset=mados \
-    encoder=croma_optical\
-    decoder=seg_linear\
+    dataset=hlsburnscars \
+    encoder=prithvi \
+    decoder=seg_muster\
     preprocessing=seg_default \
     criterion=cross_entropy \
     task=segmentation

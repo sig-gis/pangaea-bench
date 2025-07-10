@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.mtcropclassification.MTCropClassification
 dataset_name: MTCropClassifciation
-root_path:  ./data/multi_temporal_crop_segmentation
+root_path:  mnt/disks/eofm-benchmark/data/multi_temporal_crop_segmentation
 download_url: None
 auto_download: False
 img_size: 224

@@ -129,6 +129,9 @@ def main(cfg: DictConfig) -> None:
     encoder.load_encoder_weights(logger)
     logger.info("Built {}.".format(encoder.model_name))
 
+    encoder_param_count = sum(p.numel() for p in encoder.parameters())
+    logger.info("Encoder Parameter Count: {value:,}".format(value=encoder_param_count))
+
     # prepare the decoder (segmentation/regression)
     decoder: Decoder = instantiate(
         cfg.decoder,
@@ -146,6 +149,9 @@ def main(cfg: DictConfig) -> None:
             decoder.module.model_name, type(encoder).__name__
         )
     )
+
+    decoder_param_count = sum(p.numel() for p in decoder.parameters() if p.requires_grad)
+    logger.info("Decoder Parameter Count: {value:,}".format(value=decoder_param_count))
 
     modalities = list(encoder.input_bands.keys())
     collate_fn = get_collate_fn(modalities)

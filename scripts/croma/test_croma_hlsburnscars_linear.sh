@@ -1,6 +1,6 @@
 torchrun pangaea/run.py \
     --config-name=train \
-    dataset=mados \
+    dataset=hlsburnscars \
     encoder=croma_optical\
     decoder=seg_linear\
     preprocessing=seg_default \

@@ -1,8 +1,8 @@
-torchrun pangaea/run.py \
+HYDRA_FULL_ERROR=1 torchrun pangaea/run.py \
     --config-name=train \
-    dataset=mtcropclassification \
+    dataset=hlsburnscars \
     encoder=dofa\
-    decoder=seg_linear_mt_ltae\
+    decoder=seg_fcn\
     preprocessing=seg_default\
     criterion=cross_entropy \
     task=segmentation

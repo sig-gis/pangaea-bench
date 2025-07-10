@@ -3,6 +3,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn import PixelShuffle
 
 from pangaea.decoders.base import Decoder
 from pangaea.decoders.ltae import LTAE2d, LTAEChannelAdaptor
@@ -28,6 +29,7 @@ class SegUPerNet(Decoder):
         channels: int,
         pool_scales=(1, 2, 3, 6),
         feature_multiplier: int = 1,
+        interp_method='interpolate',
         in_channels: list[int] | None = None,
     ):
         super().__init__(
@@ -40,6 +42,7 @@ class SegUPerNet(Decoder):
         self.encoder = encoder
         self.finetune = finetune
         self.feature_multiplier = feature_multiplier
+        self.interp_method = interp_method
 
         if not self.finetune or self.finetune == 'none':
             for param in self.encoder.parameters():
@@ -137,7 +140,13 @@ class SegUPerNet(Decoder):
             nn.ReLU(inplace=True),
         )
 
-        self.conv_seg = nn.Conv2d(self.channels, self.num_classes, kernel_size=1)
+        if self.interp_method =='interpolate':
+            self.conv_seg = nn.Conv2d(self.channels, self.num_classes, kernel_size=1)
+        elif self.interp_method == 'PixelShuffle':
+            (H,W,C) = self.encoder.output_shape
+            r = self.encoder.input_size // (H * (2**(len(self.lateral_convs) - 1)))
+            self.conv_seg = nn.Conv2d(self.channels, self.num_classes*r*r, kernel_size=1)
+            self.pixel_shuffle = PixelShuffle(r)
         self.dropout = nn.Dropout2d(0.1)
 
     def psp_forward(self, inputs):
@@ -174,6 +183,7 @@ class SegUPerNet(Decoder):
         used_backbone_levels = len(laterals)
         for i in range(used_backbone_levels - 1, 0, -1):
             prev_shape = laterals[i - 1].shape[2:]
+            # print(prev_shape)
             laterals[i - 1] = laterals[i - 1] + F.interpolate(
                 laterals[i],
                 size=prev_shape,
@@ -247,7 +257,10 @@ class SegUPerNet(Decoder):
             output_shape = img[list(img.keys())[0]].shape[-2:]
 
         # interpolate to the target spatial dims
-        output = F.interpolate(output, size=output_shape, mode="bilinear")
+        if self.interp_method == 'interpolate':
+            output = F.interpolate(output, size=output_shape, mode="bilinear")
+        elif self.interp_method == 'PixelShuffle':
+            output = self.pixel_shuffle(output)
 
         return output
 

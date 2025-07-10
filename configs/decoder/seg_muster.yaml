@@ -1,0 +1,48 @@
+_target_: pangaea.decoders.muster.MusterDecoder
+
+embed_dims: ${encoder.embed_dim}
+channels: 256
+patch_size: 4
+window_size: 12
+mlp_ratio: 4
+depths:
+  - 2
+  - 2
+  - 2
+  - 2
+num_heads:
+  - 32
+  - 16
+  - 8
+  - 4
+strides:
+  - 2
+  - 2
+  - 2
+  - 4
+qkv_bias: true
+qk_scale: null
+drop_rate: 0.0
+attn_drop_rate: 0.
+drop_path_rate: 0.1
+act_cfg:
+  type: GELU
+in_index:
+  - 0
+  - 1
+  - 2
+  - 3
+norm_cfg:
+  type: LN
+align_corners: false
+
+pool_scales:
+  - 1
+  - 2
+  - 3
+  - 6
+pyramid_strategy: head
+
+encoder: null
+num_classes: ${dataset.num_classes}
+finetune: false

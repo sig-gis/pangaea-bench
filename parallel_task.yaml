@@ -1,0 +1,30 @@
+taskGroups:
+- taskSpec:
+    runnables:
+    - container:
+        imageUri: us-west1-docker.pkg.dev/eofm-benchmark/pangaea-bench/pangaea
+        commands:
+          - scripts/linear_probe_exps.sh
+    volumes:
+    - gcs:
+        remotePath: "eofm-benchmark"
+      mountPath: "/mnt/disks/eofm-benchmark"
+    computeResource:
+        cpuMilli: 12000
+        memoryMib: 85000
+  taskCount: 6
+  parallelism: 6
+  taskCountPerNode: 1
+  schedulingPolicy: "AS_SOON_AS_POSSIBLE"
+allocationPolicy:
+  instances:
+    - policy:
+        bootDisk:
+          sizeGb: 150
+        machineType: a2-highgpu-1g
+        accelerators:
+          - type: nvidia-tesla-a100
+            count: 1
+      installGpuDrivers: true
+logsPolicy:
+  destination: CLOUD_LOGGING

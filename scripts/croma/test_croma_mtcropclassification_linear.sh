@@ -1,8 +1,8 @@
 torchrun pangaea/run.py \
     --config-name=train \
-    dataset=hlsburnscars \
+    dataset=mtcropclassification \
     encoder=croma_optical\
-    decoder=seg_linear\
-    preprocessing=seg_resize_input_layer \
+    decoder=seg_linear_mt_ltae\
+    preprocessing=seg_default \
     criterion=cross_entropy \
     task=segmentation

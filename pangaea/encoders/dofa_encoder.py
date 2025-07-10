@@ -219,6 +219,9 @@ class DOFA_Encoder(Encoder):
         self.wv_list = [
             self.wave_list[m][bi] for m, b in self.input_bands.items() for bi in b
         ]
+
+        self.output_shape = (self.input_size // self.patch_size, self.input_size // self.patch_size, self.embed_dim)
+
         self.resize_pos_embed = resize_pos_embed
 
         self.norm = norm_layer(self.embed_dim)
@@ -313,12 +316,13 @@ class DOFA_Encoder(Encoder):
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
 
-        if self.resize_pos_embed:
+        if self.resize_pos_embed and self.resize_pos_embed is not None:
             self.resize_input_layer(self.resize_pos_embed)
 
 
 
     def resize_input_layer(self,ft_img_size):
+        print('resizing pos embed')
         self.num_patches = (ft_img_size // self.patch_size) ** 2
         self.pos_embed = nn.Parameter(
             torch.zeros(1, self.num_patches + 1, self.embed_dim), requires_grad=False

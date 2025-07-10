@@ -87,7 +87,7 @@ class Prithvi_Encoder(Encoder):
         self.patch_size = patch_size
         self.in_chans = in_chans
 
-        self.resize_pos_embed = resize_pos_embed if resize_pos_embed != self.img_size else False
+        self.resize_pos_embed = resize_pos_embed if (resize_pos_embed != self.img_size) else False
         if ft_bands is not None:
             self.ft_bands = None
             if len(ft_bands['optical']) != in_chans:

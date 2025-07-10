@@ -1,8 +1,8 @@
 torchrun pangaea/run.py \
     --config-name=train \
     dataset=sen1floods11 \
-    encoder=dofa \
+    encoder=croma_joint \
     decoder=seg_linear\
-    preprocessing=seg_resize_input_layer \
+    preprocessing=seg_default \
     criterion=cross_entropy \
     task=segmentation

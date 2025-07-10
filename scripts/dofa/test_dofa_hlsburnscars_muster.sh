@@ -1,8 +1,8 @@
-torchrun pangaea/run.py \
+HYDRA_FULL_ERROR=1 torchrun pangaea/run.py \
     --config-name=train \
     dataset=hlsburnscars \
-    encoder=prithvi \
-    decoder=seg_upernet\
+    encoder=dofa\
+    decoder=seg_muster\
     preprocessing=seg_default \
     criterion=cross_entropy \
     task=segmentation
