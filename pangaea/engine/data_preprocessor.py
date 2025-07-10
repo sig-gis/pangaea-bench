@@ -34,10 +34,10 @@ class BasePreprocessor:
                     f"Image dimension must be 4 (C, T, H, W), Got {str(len(v.shape))}"
                 )
 
-        # if len(data["target"].shape) != 2:
-        #     raise AssertionError(
-        #         f"Target dimension must be 2 (H, W), Got {str(len(data['target'].shape))}"
-        #     )
+        if len(data["target"].shape) not in (0, 1, 2):
+            raise AssertionError(
+                f"Target dimension must be 0 (for classification - single label) or 1 (for classification - multi-label) or 2 (for dense prediction), got {str(len(data['target'].shape))}"
+            )
 
     def check_size(self, data: dict[str, torch.Tensor | dict[str, torch.Tensor]]):
         """check if data size is equal"""
