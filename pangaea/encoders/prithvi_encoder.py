@@ -17,6 +17,7 @@ class Prithvi_Encoder(Encoder):
     Paper: https://arxiv.org/pdf/2310.18660
     Attributes:
         output_layers (int | list[int]): The layers from which to extract the output.
+        output_shape (Tuple): shape of final output of encoder.
         img_size (int): The size of the input image.
         num_frames (int): The number of frames in the input data.
         patch_size (int): The size of each patch.
@@ -75,7 +76,7 @@ class Prithvi_Encoder(Encoder):
         )
 
         self.output_layers = output_layers
-
+        
         self.img_size = self.input_size
         self.tublet_size = tubelet_size
 
@@ -86,7 +87,8 @@ class Prithvi_Encoder(Encoder):
 
         self.patch_size = patch_size
         self.in_chans = in_chans
-
+        self.output_shape = (self.img_size // self.patch_size, self.img_size // self.patch_size, self.embed_dim)
+        
         self.resize_pos_embed = resize_pos_embed if (resize_pos_embed != self.img_size) else False
         if ft_bands is not None:
             self.ft_bands = None
@@ -183,12 +185,16 @@ class Prithvi_Encoder(Encoder):
         incompatible_shape = {}
         missing = {}
         for name, param in self.named_parameters():
-            if name not in k:
-                missing[name] = param.shape
-            elif pretrained_model[name].shape != param.shape:
-                incompatible_shape[name] = (param.shape, pretrained_model[name].shape)
+            if "encoder." not in name:
+                pname = f"encoder.{name}"
             else:
-                pretrained_encoder[name] = pretrained_model[name]
+                pname = name
+            if pname not in k:
+                missing[name] = param.shape
+            elif pretrained_model[pname].shape != param.shape:
+                incompatible_shape[name] = (param.shape, pretrained_model[pname].shape)
+            else:
+                pretrained_encoder[name] = pretrained_model[pname]
 
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
