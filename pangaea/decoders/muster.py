@@ -10,6 +10,8 @@ from copy import deepcopy
 from timm.models.layers import to_2tuple
 from timm.layers import create_norm,create_act
 
+from pangaea.decoders.utils import resize
+
 from pangaea.decoders.base import Decoder
 from pangaea.decoders.ltae import LTAE2d, LTAEChannelAdaptor
 from pangaea.encoders.base import Encoder
@@ -22,7 +24,7 @@ class MusterDecoder(Decoder):
             encoder: Encoder,
             num_classes:int,
             finetune:str,
-            embed_dims:int,
+            # embed_dims:int,
             channels:int,
             patch_size:int,
             window_size:int,
@@ -42,6 +44,7 @@ class MusterDecoder(Decoder):
             in_channels:list[int] | None = None,
             pool_scales= (1,2,3,6),
             pyramid_strategy='head',
+            interp_method = 'PixelShuffle',
             feature_multiplier:int=1
     ):
         super().__init__(
@@ -72,7 +75,7 @@ class MusterDecoder(Decoder):
         self.align_corners = align_corners
         self.pool_scales = pool_scales
         self.pyramid_strategy = pyramid_strategy
-        self.reshape_strategy = 'interpolate'
+        self.interp_method = interp_method
 
         if not self.finetune or self.finetune == 'none':
             for param in self.encoder.parameters():
@@ -86,6 +89,9 @@ class MusterDecoder(Decoder):
         self.input_layers = self.encoder.output_layers
         self.input_layers_num = len(self.input_layers)
 
+        H, W, C = self.encoder.output_shape
+        pyramid_sizes = []
+
         if in_channels is None:
             self.in_channels = [
                 dim * feature_multiplier for dim in self.encoder.output_dim
@@ -97,10 +103,13 @@ class MusterDecoder(Decoder):
             rescales = [1 for _ in range(self.input_layers_num)]
         else:
             scales = [4, 2, 1, 0.5]
+            [pyramid_sizes.append((int(H*s),int(W*s),int(C/s))) for s in scales]
             rescales = [
                 scales[int(i / self.input_layers_num * 4)]
                 for i in range(self.input_layers_num)
             ]
+
+        print(pyramid_sizes)
 
         self.neck = Feature2Pyramid(
             embed_dim=self.in_channels,
@@ -109,8 +118,8 @@ class MusterDecoder(Decoder):
 
         self.align_corners = False
 
-        self.in_channels = embed_dims
-        self.embed_dims = embed_dims
+        self.in_channels = self.encoder.embed_dim
+        self.embed_dims = self.encoder.embed_dim
         self.channels = channels
         self.num_classes = num_classes
 
@@ -132,7 +141,8 @@ class MusterDecoder(Decoder):
             drop_path_rate=self.drop_path_rate,
             act_cfg=self.act_cfg,
             norm_cfg=self.norm_cfg,
-            init_cfg=None
+            init_cfg=None,
+            pyramid_sizes=pyramid_sizes
         )
 
         self.muster_output_channels = int(self.in_channels / rescales[-3])
@@ -143,11 +153,13 @@ class MusterDecoder(Decoder):
             kernel_size=1,
             act_cfg=act_cfg
         )
-        self.conv_seg = nn.Conv2d(self.channels, self.num_classes, kernel_size=1)
-        if self.reshape_strategy == 'PixelShuffle':
-            pass
-        elif self.reshape_strategy == 'interpolation':
-            pass
+        
+        if self.interp_method == 'PixelShuffle':
+            r = self.encoder.input_size // H
+            self.conv_seg = nn.Conv2d(self.channels, self.num_classes*r*r, kernel_size=1)
+            self.pixel_shuffle = PixelShuffle(r)
+        elif self.interp_method == 'interpolate':
+            self.conv_seg = nn.Conv2d(self.channels, self.num_classes, kernel_size=1)
         self.dropout = nn.Dropout2d(0.1)
     
     def forward(
@@ -190,19 +202,21 @@ class MusterDecoder(Decoder):
             # head_input.append(f)
 
         # feat = head_input
-
         feat = self.muster(feat)
 
         feat = self.dropout(feat)
         feat = self.reshape(feat)
-        feat = self.conv_seg(feat)
+        output = self.conv_seg(feat)
 
         # fixed bug just for optical single modality
         if output_shape is None:
             output_shape = img[list(img.keys())[0]].shape[-2:]
 
         # interpolate to the target spatial dims
-        output = F.interpolate(feat, size=output_shape, mode="bilinear")
+        if self.interp_method == 'interpolate':
+            output = F.interpolate(output, size=output_shape, mode="bilinear")
+        elif self.interp_method == 'PixelShuffle':
+            output = self.pixel_shuffle(output)
 
         return output
 
@@ -356,8 +370,12 @@ class ShiftWindowMSA(nn.Module):
     def forward(self, query, skip_query, hw_shape):
         B, L, C = query.shape
         H, W = hw_shape
+        
+        # print(query.shape)
+        # print(skip_query.shape)
+        # print(hw_shape)
         assert L == H * W, 'input feature has wrong size'
-        assert query.shape == skip_query.shape, 'skip query should has the same shape with query'
+        assert query.shape == skip_query.shape, f'skip query should has the same shape with query, found query shape {query.shape} and skip query shape {skip_query.shape}'
         query = query.view(B, H, W, C)
         skip_query = skip_query.view(B, H, W, C)
 
@@ -602,9 +620,8 @@ class SwinBlockSequence(nn.Module):
                  drop_rate=0.,
                  attn_drop_rate=0.,
                  drop_path_rate=0.,
-
                  is_upsample=False,
-
+                 upsample_size=None,
                  act_cfg=dict(type='GELU'),
                  norm_cfg=dict(type='LN'),
                  init_cfg=None):
@@ -635,6 +652,7 @@ class SwinBlockSequence(nn.Module):
             self.blocks.append(block)
 
         self.is_upsample = is_upsample
+        self.upsample_size = upsample_size
         self.conv = ConvModule(
             in_channels=embed_dims * 2,
             out_channels=embed_dims * 2,
@@ -650,13 +668,21 @@ class SwinBlockSequence(nn.Module):
 
         if self.is_upsample:
             x = torch.cat([x, skip_x], dim=2)
-            up_hw_shape = [hw_shape[0] * 2, hw_shape[1] * 2]
+            up_hw_shape = [self.upsample_size[0],self.upsample_size[1]]
             B, HW, C = x.shape
             x = x.view(B, hw_shape[0], hw_shape[1], C)
             x = x.permute(0, 3, 1, 2)
             x = self.conv(x)
             x = self.ps(x)
+            
+            # print(f'Upsample Size: {self.upsample_size}')
+            #correction for odd HW product
+            if (self.upsample_size[0] % 2) != 0:
+                x = F.interpolate(x, (self.upsample_size[0],self.upsample_size[1]),mode='bilinear')
+            
             x = x.permute(0, 2, 3, 1).view(B, up_hw_shape[0] * up_hw_shape[1], C // 4)
+
+            
             return x
         else:
             x = torch.cat([x, skip_x], dim=2)
@@ -684,7 +710,8 @@ class MusterHead(nn.Module):
                  drop_path_rate=0.1,
                  act_cfg=dict(type='GELU'),
                  norm_cfg=dict(type='LN'),
-                 init_cfg=None, 
+                 init_cfg=None,
+                 pyramid_sizes=None, 
                  **kwargs):
         super().__init__()
 
@@ -703,11 +730,15 @@ class MusterHead(nn.Module):
         self.stages = nn.ModuleList()
         in_channels = embed_dims
         self.channels = channels
+        self.pyramid_sizes = pyramid_sizes
+
         for i in range(num_layers):
             if i < num_layers - 1:
                 is_upsample = True
+                upsample_size = self.pyramid_sizes[3-(i+1)]
             else:
                 is_upsample = False
+                upsample_size = None
 
             stage = SwinBlockSequence(
                 embed_dims=in_channels,
@@ -720,9 +751,8 @@ class MusterHead(nn.Module):
                 drop_rate=drop_rate,
                 attn_drop_rate=attn_drop_rate,
                 drop_path_rate=dpr[sum(depths[:i]):sum(depths[:i + 1])],
-
                 is_upsample=is_upsample,
-
+                upsample_size=upsample_size,
                 act_cfg=act_cfg,
                 norm_cfg=norm_cfg,
                 init_cfg=None)
@@ -767,6 +797,7 @@ class MusterHead(nn.Module):
         # print(inputs[3].shape)
         B, C, H, W = inputs[3].shape
         
+        shapes = [input.shape for input in inputs]
         
         hw_shape = (H, W)
         index = 0
@@ -784,12 +815,14 @@ class MusterHead(nn.Module):
         for i, stage in enumerate(self.stages):
             C //= 2
             x = stage(x, inputs[3 - i], hw_shape)
-            hw_shape = (hw_shape[0] * 2, hw_shape[1] * 2)
+            
+            if i < len(self.stages) - 1:
+                B, C, H, W = shapes[3-(i+1)]
+                hw_shape = (H,W)
 
         out = x
         out = self.outffn(out)
-        out = out.view(B, hw_shape[0] // 2, hw_shape[1] // 2, C * 4).permute(0, 3, 1, 2)
-
+        out = out.view(B, hw_shape[0], hw_shape[1], C * 4).permute(0, 3, 1, 2)
         # out = self.cls_seg(out)
 
         return out

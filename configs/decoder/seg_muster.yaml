@@ -1,6 +1,7 @@
 _target_: pangaea.decoders.muster.MusterDecoder
 
-embed_dims: ${encoder.embed_dim}
+interp_method: interpolate
+# embed_dims: ${encoder.embed_dim}
 channels: 256
 patch_size: 4
 window_size: 12

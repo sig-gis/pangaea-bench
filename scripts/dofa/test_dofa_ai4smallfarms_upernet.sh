@@ -3,6 +3,6 @@ torchrun pangaea/run.py \
    dataset=ai4smallfarms \
    encoder=dofa \
    decoder=seg_upernet \
-   preprocessing=seg_irregular_images \
-   criterion=cross_entropy \
+   preprocessing=seg_default\
+   criterion=dice \
    task=segmentation

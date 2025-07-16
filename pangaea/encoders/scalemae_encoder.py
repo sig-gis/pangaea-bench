@@ -94,6 +94,8 @@ class ScaleMAE_Encoder(Encoder):
         self.patch_embed = PatchEmbedUnSafe(
             self.img_size, patch_size, in_chans, embed_dim
         )
+
+        self.output_shape = (self.img_size // patch_size, self.img_size // patch_size, self.embed_dim)
         # num_patches = self.patch_embed.num_patches
         # self.img_size = self.resize_pos_embed
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))

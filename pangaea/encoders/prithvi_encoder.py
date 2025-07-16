@@ -105,6 +105,8 @@ class Prithvi_Encoder(Encoder):
         )
         num_patches = self.patch_embed.num_patches
 
+        self.output_shape = (self.img_size // patch_size, self.img_size // self.patch_size, self.embed_dim)
+
         self.cls_token = nn.Parameter(torch.zeros(1, 1, embed_dim))
         self.pos_embed = nn.Parameter(
             torch.zeros(1, num_patches + 1, embed_dim), requires_grad=False

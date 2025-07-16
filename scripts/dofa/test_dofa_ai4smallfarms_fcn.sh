@@ -2,7 +2,7 @@
    --config-name=train \
    dataset=ai4smallfarms \
    encoder=dofa \
-   decoder=seg_linear \
+   decoder=seg_fcn \
    preprocessing=seg_default \
-   criterion=dice \
+   criterion=cross_entropy \
    task=segmentation

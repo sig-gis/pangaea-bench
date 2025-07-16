@@ -78,6 +78,8 @@ class CROMA_OPTICAL_Encoder(Encoder):
             self.num_heads = 16
             self.patch_size = 8
 
+        self.output_shape = (self.img_size // self.patch_size, self.img_size // self.patch_size, self.embed_dim)
+
         self.num_patches = int((self.img_size / 8) ** 2)
         self.s2_channels = 12  # fixed at 12 multispectral optical channels
         self.attn_bias = get_2dalibi(

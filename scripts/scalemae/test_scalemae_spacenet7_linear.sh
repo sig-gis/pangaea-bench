@@ -3,6 +3,6 @@ torchrun pangaea/run.py \
     dataset=spacenet7 \
     encoder=scalemae \
     decoder=seg_linear\
-    preprocessing=seg_resize_input_layer \
+    preprocessing=seg_default\
     criterion=dice \
     task=segmentation

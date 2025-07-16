@@ -3,6 +3,6 @@
    dataset=ai4smallfarms \
    encoder=scalemae \
    decoder=seg_linear \
-   preprocessing=seg_irregular_images \
-   criterion=cross_entropy \
+   preprocessing=seg_default \
+   criterion=dice \
    task=segmentation

@@ -3,6 +3,6 @@ torchrun pangaea/run.py \
     dataset=sen1floods11 \
     encoder=scalemae \
     decoder=seg_linear\
-    preprocessing=seg_resize_input_layer \
+    preprocessing=seg_linear \
     criterion=cross_entropy \
     task=segmentation

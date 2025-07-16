@@ -3,6 +3,6 @@ torchrun pangaea/run.py \
     dataset=hlsburnscars \
     encoder=prithvi \
     decoder=seg_linear\
-    preprocessing=seg_resize_input_layer \
+    preprocessing=seg_default \
     criterion=cross_entropy \
     task=segmentation

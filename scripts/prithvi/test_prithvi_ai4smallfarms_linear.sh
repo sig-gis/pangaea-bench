@@ -3,6 +3,6 @@ torchrun pangaea/run.py \
    dataset=ai4smallfarms \
    encoder=prithvi \
    decoder=seg_linear \
-   preprocessing=seg_irregular_images \
+   preprocessing=seg_default \
    criterion=cross_entropy \
    task=segmentation
