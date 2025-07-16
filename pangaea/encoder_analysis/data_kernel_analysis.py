@@ -55,17 +55,17 @@ def bootstrap_null(graph, number_of_bootstraps=25, n_components=None, umap_n_nei
     if acorn is not None:
         np.random.seed(acorn)
 
-    ase_latents = AdjacencySpectralEmbed(n_components=n_components, svd_seed=acorn, n_elbows=5).fit_transform(graph)
+    ase_latents = AdjacencySpectralEmbed(n_components=n_components, svd_seed=acorn).fit_transform(graph)
 
     n, n_components = ase_latents.shape
 
-    distances = np.zeros(((2, number_of_bootstraps, n)))
     distances = np.zeros((number_of_bootstraps, n))
 
     for i in tqdm(range(number_of_bootstraps)):
         graph_b = rdpg(ase_latents, directed=False)
 
         bootstrap_latents = OmnibusEmbed(n_components=n_components).fit_transform([graph, graph_b])
+        distances[i] = np.linalg.norm(bootstrap_latents[0] - bootstrap_latents[1], axis=1)
     return distances.transpose((1, 0)) , n_components
 
 
@@ -98,10 +98,12 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
 
     print(omni_embds[0].shape, omni_embds.shape, "OMNI SHAPE")
 
-    colors = ['red', 'black', 'blue', 'orange', 'green', "magenta", "cyan", "olive", "purple", "gray", "pink", "brown", "darkcyan", "chocolate", "lightgreen", "gold"]
+    colors = ['red', 'black', 'blue', 'orange', 'green', "magenta", "cyan", "olive", "purple", \
+              "gray", "pink", "brown", "darkcyan", "chocolate", "lightgreen", "gold", "deeppink",\
+              "lightgrey", "rosybrown", "maroon", "coral", "sandybrown"]
     fig, ax = plt.subplots()
     for i, model_name in enumerate(model_names): # < 5 < 40 < 5
-        ax.scatter(omni_embds[i,:,0], omni_embds[i, :,1], c=colors[i], label=model_name[i])
+        ax.scatter(omni_embds[i,:,0], omni_embds[i, :,1], c=colors[i], label=model_name)
     plt.tick_params(left=False,
                     bottom=False,
                     labelleft=False,
@@ -130,13 +132,13 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     #- is to use the hypothesis test described in the paper
 
     for i, model_name in enumerate(model_names):
-        for j in range(i+1,len(model_names)):
-            if i == j:
-                continue
+        for j in range(i,len(model_names)):
+            #if i == j:
+            #    continue
             model_name2 = model_names[j]
             print(model_name2, model_name)
-            null_dist, ase_n_components  = bootstrap_null(knn_graphs[model_names[i]], n_components=None,\
-                number_of_bootstraps=20, fname_uid="_" + model_names[i] + "_" + model_names[j])
+            null_dist, ase_n_components  = bootstrap_null(knn_graphs[model_names[i]], n_components=2, \
+                number_of_bootstraps=100, fname_uid="_" + model_names[i] + "_" + model_names[j])
             test_statistics = np.linalg.norm(omni_embds[i] - omni_embds[j], axis=1)
             p_values = []
 
@@ -183,8 +185,11 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     dist_matrix = build_dist_mtx(model_names, knn_graphs)
  
     print(dist_matrix.shape)
+
+    colors = ['red', 'black', 'blue', 'orange', 'green', "magenta", "cyan", "olive", "purple", \
+              "gray", "pink", "brown", "darkcyan", "chocolate", "lightgreen", "gold", "deeppink",\
+              "lightgrey", "rosybrown", "maroon", "coral", "sandybrown"]
  
-    colors = ['red', 'black', 'blue', 'orange', 'green', "magenta", "cyan", "olive", "purple"]
     cmds_embds = ClassicalMDS(n_components=2).fit_transform(dist_matrix)
     for i, cmds in enumerate(cmds_embds):
         ax.scatter(cmds[0], cmds[1], label=model_names[i], c=colors[i])
