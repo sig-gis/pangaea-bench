@@ -178,11 +178,10 @@ def main(cfg: DictConfig) -> None:
 
 
     choices = OmegaConf.to_container(HydraConfig.get().runtime.choices)
-
     out_dir = os.path.join(cfg.embed_dir,cfg.dataset.dataset_name,choices["encoder"],'train/')
 
     if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
+        os.makedirs(out_dir, exist_ok = True)
     #embed train data
 
     for batch_idx, data in enumerate(train_loader):
@@ -226,13 +225,12 @@ def main(cfg: DictConfig) -> None:
         logit_out_fname = 'embd_' + image_fname[:-3] + 'npy'
         print(logit_out_fname)
         np.save(os.path.join(out_dir,logit_out_fname),feat)
-    
 
 
     out_dir = os.path.join(cfg.embed_dir,cfg.dataset.dataset_name,choices["encoder"],'test/')
 
     if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
+        os.makedirs(out_dir, exist_ok = True)
     
     #embed test data
     for batch_idx, data in enumerate(test_loader):

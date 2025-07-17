@@ -96,7 +96,7 @@ def main(cfg: DictConfig) -> None:
     out_dir = os.path.join(cfg.embed_dir,cfg.dataset.dataset_name,choices["encoder"],'test/')
 
     if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
+        os.makedirs(out_dir, exist_ok = True)
    
     encoder.to(device)
  

@@ -65,7 +65,7 @@ def run_pairwise_cka_analysis(encoder1, encoder2, loader1, loader2, out_dir):
         model1_layers=model1_layers, model2_layers=model2_layers, device='cpu')
  
     if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
+        os.makedirs(out_dir, exist_ok = True)
 
     cka.compare(loader1, loader2) #, only_compare_diagonals=True)
     cka.plot_results(save_path=os.path.join(out_dir, encoder1.model_name + "_" + encoder2.model_name+ "_compare.png"))
