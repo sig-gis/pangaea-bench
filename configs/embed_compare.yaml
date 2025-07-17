@@ -17,10 +17,10 @@ finetune: false
 data_replicate: 1
 ckpt_dir: ???
 embed_dir: './embeddings'
+out_dir: './umap_knn'
+
 
 defaults:
   - task: ???
   - dataset: ???
-  - encoder: ???
-  - preprocessing: ??
   - _self_
