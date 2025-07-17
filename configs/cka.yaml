@@ -15,12 +15,9 @@ test_batch_size: 1
 use_final_ckpt: false
 finetune: false
 data_replicate: 1
-ckpt_dir: ???
-embed_dir: './embeddings'
+ckpt_dir: "./ckpts" #???
+out_dir: './cka'
 
 defaults:
-  - task: ???
   - dataset: ???
-  - encoder: ???
-  - preprocessing: ??
   - _self_

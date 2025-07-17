@@ -16,7 +16,8 @@ use_final_ckpt: false
 finetune: false
 data_replicate: 1
 ckpt_dir: ???
-embed_dir: './embeddings'
+#embed_dir: './embeddings'
+embed_dir: './ww'
 
 defaults:
   - task: ???

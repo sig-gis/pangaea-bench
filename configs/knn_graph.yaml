@@ -17,10 +17,19 @@ finetune: false
 data_replicate: 1
 ckpt_dir: ???
 embed_dir: './embeddings'
+out_dir: './umap_knn'
+
+label_file_subset: 30
+umap_n_neighbors: 20
+umap_min_dist: 0.5
+umap_spread: 1
+umap_n_components: 2
+ 
 
 defaults:
   - task: ???
   - dataset: ???
   - encoder: ???
   - preprocessing: ??
+  - criterion: ???
   - _self_
