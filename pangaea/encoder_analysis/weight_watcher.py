@@ -96,6 +96,7 @@ def plot_metrics_histogram(metric, xlabel, title, series_name, \
     figname = "img/{}_{}_{}_hist.png".format(series_name, idname, metric)
     print("saving {}".format(figname))
     plt.savefig(figname)
+    plt.tight_layout()
     plt.show()
 
 
@@ -136,6 +137,7 @@ def plot_metrics_depth(metric, ylabel, title, series_name, \
 
     figname = "img/{}_{}_{}_depth.png".format(series_name, idname, metric)
     print("saving {}".format(figname))
+    plt.tight_layout()
     plt.savefig(figname)
     plt.show()
 
@@ -334,7 +336,7 @@ def main(cfg: DictConfig) -> None:
     out_dir = os.path.join(cfg.embed_dir,cfg.dataset.dataset_name,encoder.model_name,'test/')
 
     if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
+        os.makedirs(out_dir, exist_ok = True)
    
     #initialize weight watcher instance 
     watcher = ww.WeightWatcher(model=encoder, log_level=logging.DEBUG)
