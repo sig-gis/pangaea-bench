@@ -116,29 +116,43 @@ def get_indices(cfg, image_fname, target, indices_dir) -> None:
 
 def rescale_embed(embed, image_shape, device):
  
-     start_rescale_factor = math.sqrt(embed.shape[0])
+     print(embed.shape, image_shape)
+ 
+     ind = 0
+     if embed.ndim > 3:
+         ind = 1
 
-     rescale_factor = int(math.sqrt(embed.shape[0])) // 8
-     while embed.shape[0] % rescale_factor**2 > 0:
-         rescale_factor = rescale_factor + 1
 
+     if int(math.sqrt(embed.shape[ind])) // 8 > 3:
+  
+         rescale_factor = int(math.sqrt(embed.shape[ind])) // 8
 
-     ps = torch.nn.PixelShuffle(rescale_factor) #.to(device)
-     embed = torch.from_numpy(embed).to(device)
+         print("HERE", rescale_factor, embed.shape)
 
-     embed = ps(embed)
+         while embed.shape[ind] % rescale_factor**2 > 0:
+             rescale_factor = rescale_factor + 1
+
+         ps = torch.nn.PixelShuffle(rescale_factor) #.to(device)
+         embed = torch.from_numpy(embed).to(device)
+
+         embed = ps(embed)
+     else:
+         embed = torch.from_numpy(embed).to(device)
 
      if embed.ndim < 4:
          embed = torch.unsqueeze(embed, dim=0)
+     else:
+         embed = torch.unsqueeze(torch.flatten(embed, start_dim=0, end_dim=1), dim=0)
+         
 
+     print(embed.shape)
      #Assumption is currently square images + tiles 
      #Adjusting to account for potential off-by-ones
      if embed.shape[-1] != image_shape:
          embed = F.interpolate(embed, size=(image_shape, image_shape), mode='nearest')
 
      embed = torch.permute(embed, (0,2,3,1)).flatten(start_dim=0, end_dim=2)
-
-  
+ 
      if device == "cuda":
          embed = embed.detach().cpu().numpy()
 
@@ -236,10 +250,10 @@ def main(cfg: DictConfig) -> None:
     out_dir = os.path.join(indices_dir, choices["encoder"])
     
     if not os.path.isdir(indices_dir):
-        os.makedirs(indices_dir)
+        os.makedirs(indices_dir, exist_ok = True)
 
     if not os.path.isdir(out_dir):
-        os.makedirs(out_dir)
+        os.makedirs(out_dir, exist_ok = True)
 
     #Structure embedding test data
     embed_full = None
@@ -269,7 +283,8 @@ def main(cfg: DictConfig) -> None:
         #Get subset and apply indices, sampling each class available - subsetting done due to compuational complexity of tasks
 
         indices = get_indices(cfg, image_fname, target, indices_dir)
-         
+        
+        print(embed.shape) 
         sub_embed = embed[indices,:]
         sub_target = target[indices]
 
