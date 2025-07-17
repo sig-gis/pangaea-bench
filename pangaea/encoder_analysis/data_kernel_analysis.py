@@ -121,6 +121,28 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     plt.clf()
     plt.close(fig)    
 
+    for i, model_name in enumerate(model_names): # < 5 < 40 < 5
+        fig, ax = plt.subplots()
+        ax.scatter(omni_embds[i,:,0], omni_embds[i, :,1], c=colors[i], label=model_name, alpha = 0.2)
+        plt.tick_params(left=False,
+                    bottom=False,
+                    labelleft=False,
+                    labelbottom=False)
+        box = ax.get_position()
+        ax.set_position([box.x0, box.y0, box.width * 0.7, box.height])
+
+        # Put a legend to the right of the current axis
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+
+
+        plt.show()
+        print("Plotting Scatter Embed")
+        plt.savefig(os.path.join(out_dir, "Embed_Scatter_" + model_names[i] + ".png"))
+        plt.clf()
+        plt.close(fig)
+    
+
+
     #- A simple "check" to see if the two embedding functions represent sample i differently
     #- is to look at the distance || omni[0][i] - omni[1][i] ||
     argsorted=np.argsort(np.linalg.norm(omni_embds[0] - omni_embds[1], axis=1))
@@ -132,7 +154,7 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     #- is to use the hypothesis test described in the paper
 
     for i, model_name in enumerate(model_names):
-        for j in range(i,len(model_names)):
+        for j in range(0,len(model_names)):
             #if i == j:
             #    continue
             model_name2 = model_names[j]
@@ -146,7 +168,7 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
 
             for st, test_statistic in enumerate(test_statistics):
                 print("DIST", np.mean(test_statistic), np.mean(null_dist[st]), test_statistic.shape, null_dist.shape)
-                p_value = np.mean(test_statistic < null_dist[st])
+                p_value = np.mean(test_statistic <= null_dist[st])
                 p_values.append(p_value)
     
     
@@ -154,6 +176,7 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
             #- and adding color intensity to represent p-value
             fig, ax = plt.subplots()
             for d in range(omni_embds.shape[1]):
+                ax.scatter(omni_embds[j, d, 0], omni_embds[j, d, 1], label=model_name, color=colors[j])
                 ax.scatter(omni_embds[i, d, 0], omni_embds[i, d, 1], label=model_name, color=colors[i], alpha=1-p_values[d])
             plt.show()
             print("Plotting Null Hyp Scatter")
@@ -250,6 +273,32 @@ def main(cfg: DictConfig) -> None:
          "vit_scratch",
          "vit"
         ]
+
+     
+
+
+    if int(cfg.dataset.multi_temporal) > 0:
+        model_names = [
+            "croma_optical",
+            "dofa",
+            "prithvi",
+            "satlasnet_mi",
+            "scalemae",
+            "spectralgpt",
+            "ssl4eo_data2vec",
+            "ssl4eo_dino",
+            "ssl4eo_mae_optical",
+            "ssl4eo_moco",
+            "unet_encoder_mi",
+            "terramind_large",
+            "vit_scratch",
+             "vit_mi"
+        ]
+        # model_names = [
+        #"croma_optical",
+        #"dofa",
+        #"prithvi"]
+
 
     choices = OmegaConf.to_container(HydraConfig.get().runtime.choices)
     out_dir = os.path.join(cfg.out_dir,cfg.dataset.dataset_name)
