@@ -60,7 +60,7 @@ def get_exp_info(hydra_config: HydraConf) -> dict[str, str]:
     return exp_info
 
 
-@hydra.main(version_base=None, config_path="../configs", config_name="embed")
+@hydra.main(version_base=None, config_path="../../configs", config_name="embed")
 def main(cfg: DictConfig) -> None:
     """Geofm-bench main function.
 
