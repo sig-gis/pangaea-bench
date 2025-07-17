@@ -96,8 +96,6 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     #- now, we can "easily" learn a joint/aligned low-dimensional embedding of the two sets of embeddings
     omni_embds = OmnibusEmbed(n_components=2).fit_transform(list(knn_graphs.values())) #list()
 
-    print(omni_embds[0].shape, omni_embds.shape, "OMNI SHAPE")
-
     colors = ['red', 'black', 'blue', 'orange', 'green', "magenta", "cyan", "olive", "purple", \
               "gray", "pink", "brown", "darkcyan", "chocolate", "lightgreen", "gold", "deeppink",\
               "lightgrey", "rosybrown", "maroon", "coral", "sandybrown"]
@@ -146,7 +144,6 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     #- A simple "check" to see if the two embedding functions represent sample i differently
     #- is to look at the distance || omni[0][i] - omni[1][i] ||
     argsorted=np.argsort(np.linalg.norm(omni_embds[0] - omni_embds[1], axis=1))
-    print(argsorted)
  
     #- i.e., dataset[argsorted[0]] has moved the most
 
@@ -164,10 +161,8 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
             test_statistics = np.linalg.norm(omni_embds[i] - omni_embds[j], axis=1)
             p_values = []
 
-            print(test_statistics.shape, null_dist.shape, omni_embds[i].shape)
 
             for st, test_statistic in enumerate(test_statistics):
-                print("DIST", np.mean(test_statistic), np.mean(null_dist[st]), test_statistic.shape, null_dist.shape)
                 p_value = np.mean(test_statistic <= null_dist[st])
                 p_values.append(p_value)
     
@@ -184,7 +179,6 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
             plt.clf()
             plt.close(fig) 
             #- Notice that the ranking of the p-values is related to but does not equal ranking of || omni[0][i] - omni[1][i] ||
-            print(np.argsort(p_values)[::-1])
 
             #- Looking at distribution of p-values relative to the uniform dist
             #- there doesnt seem to be a systematic difference
@@ -207,7 +201,6 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     #- "Families" of embedding models are close to each other in this space.
     dist_matrix = build_dist_mtx(model_names, knn_graphs)
  
-    print(dist_matrix.shape)
 
     colors = ['red', 'black', 'blue', 'orange', 'green', "magenta", "cyan", "olive", "purple", \
               "gray", "pink", "brown", "darkcyan", "chocolate", "lightgreen", "gold", "deeppink",\
@@ -309,7 +302,6 @@ def main(cfg: DictConfig) -> None:
     for key in model_names:
         print(os.path.join(out_dir, key, key + ".UMAP.knn_graph.zarr"))
         knn_graphs[key] = zarr.load(os.path.join(out_dir, key, key + ".UMAP.knn_graph.zarr")).astype(np.float32)
-        print(knn_graphs[key].shape)
         mx_dim_1 = max(mx_dim_1, knn_graphs[key].shape[1])
         mx_dim_0 = max(mx_dim_0, knn_graphs[key].shape[0])
         #knn_graphs[key] = knn_graphs[key].astype(np.int8)

@@ -194,7 +194,6 @@ def main(cfg: DictConfig) -> None:
         image = {modality: value.to(device) for modality, value in image.items()}
 
         target = target.to(device)
-        print(train_dataset.multi_temporal)
         if encoder.multi_temporal:
             if not train_dataset.multi_temporal:
                 with torch.no_grad():
@@ -220,7 +219,6 @@ def main(cfg: DictConfig) -> None:
         feat = feat[-1]
         feat = feat[0].cpu().detach().numpy()
 
-        print(feat.shape)
 
         logit_out_fname = 'embd_' + image_fname[:-3] + 'npy'
         print(logit_out_fname)
@@ -272,7 +270,6 @@ def main(cfg: DictConfig) -> None:
         feat = feat[-1]
         feat = feat[0].cpu().detach().numpy()
 
-        print(feat.shape)
 
         logit_out_fname = 'embd_' + os.path.splitext(image_fname)[0] + '.npy'
         print(logit_out_fname)

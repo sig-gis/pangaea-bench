@@ -72,12 +72,10 @@ def plot_metrics_histogram(metric, xlabel, title, series_name, \
     ind = 0
     #for im, details in enumerate(all_details):
     for key in all_details.keys():
-        print("HERE PLOT METRICS", valid_ids)
         if key in valid_ids:
             if metric not in all_details[key]:
                 continue
             vals = all_details[key][metric].to_numpy()
-            print("HERE VALS", metric, vals)
             if log:
                 vals = np.log10(np.array(vals+0.000001, dtype=np.float))
 
@@ -356,7 +354,6 @@ def main(cfg: DictConfig) -> None:
     metrics = ["log_norm","alpha","alpha_weighted","log_alpha_norm",\
         "log_spectral_norm","stable_rank","mp_softrank"]
 
-    print(len(details), details.keys())
     colors = get_colors(len(details))
     all_names = []
     series_name = encoder.model_name #Gaussian DBN 2-Layer" #"Pix-Wise Contrastive CNN" #"JEPA_Local" #"Clay" #"Gaussian DBN 2-Layer"

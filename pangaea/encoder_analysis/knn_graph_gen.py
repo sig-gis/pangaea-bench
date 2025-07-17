@@ -116,8 +116,6 @@ def get_indices(cfg, image_fname, target, indices_dir) -> None:
 
 def rescale_embed(embed, image_shape, device):
  
-     print(embed.shape, image_shape)
- 
      ind = 0
      if embed.ndim > 3:
          ind = 1
@@ -127,7 +125,6 @@ def rescale_embed(embed, image_shape, device):
   
          rescale_factor = int(math.sqrt(embed.shape[ind])) // 8
 
-         print("HERE", rescale_factor, embed.shape)
 
          while embed.shape[ind] % rescale_factor**2 > 0:
              rescale_factor = rescale_factor + 1
@@ -145,7 +142,6 @@ def rescale_embed(embed, image_shape, device):
          embed = torch.unsqueeze(torch.flatten(embed, start_dim=0, end_dim=1), dim=0)
          
 
-     print(embed.shape)
      #Assumption is currently square images + tiles 
      #Adjusting to account for potential off-by-ones
      if embed.shape[-1] != image_shape:
@@ -284,7 +280,7 @@ def main(cfg: DictConfig) -> None:
 
         indices = get_indices(cfg, image_fname, target, indices_dir)
         
-        print(embed.shape) 
+       
         sub_embed = embed[indices,:]
         sub_target = target[indices]
 
@@ -320,7 +316,6 @@ def main(cfg: DictConfig) -> None:
     for i in range(target_full.shape[0]):
         final_projection[int(projection_data[i,0]), int(projection_data[i,1])] = target_full[i]
 
-    print(np.unique(final_projection), "HERE")
     ras_meta = {'driver': 'GTiff', 'dtype': 'int32', 'nodata': -1, 'width': final_projection.shape[1], 'height': final_projection.shape[0], 'count': 1, 'tiled': False, 'interleave': 'band'}
 
     out_file = os.path.join(out_dir, choices["encoder"] + ".UMAP_Labels.tif")
