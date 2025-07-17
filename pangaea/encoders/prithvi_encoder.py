@@ -84,10 +84,14 @@ class Prithvi_Encoder(Encoder):
             self.num_frames = num_frames
         else:
             self.num_frames = 1
+            
+        # multitemporal output to play well with decoders
+        self.output_dim = [o*self.num_frames for o in self.output_dim]
+        self.embed_dim *= self.num_frames
 
         self.patch_size = patch_size
         self.in_chans = in_chans
-        self.output_shape = (self.img_size // self.patch_size, self.img_size // self.patch_size, self.embed_dim)
+        self.output_shape = (self.img_size // self.patch_size, self.img_size // self.patch_size, self.embed_dim*self.num_frames)
         
         self.resize_pos_embed = resize_pos_embed if (resize_pos_embed != self.img_size) else False
         if ft_bands is not None:
@@ -254,14 +258,13 @@ class Prithvi_Encoder(Encoder):
                 out = (
                     x[:, 1:, :]
                     .permute(0, 2, 1)
-                    .view(
+                    .reshape(
                         x.shape[0],
                         -1,
-                        self.num_frames,
+                        # self.num_frames,
                         self.img_size // self.patch_size,
                         self.img_size // self.patch_size,
                     )
-                    .squeeze(2)
                     .contiguous()
                 )
                 output.append(out)
