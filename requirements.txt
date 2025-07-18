@@ -22,3 +22,10 @@ yacs
 wandb
 hydra-core
 wheel
+transformers
+accelerate
+graspologic
+weightwatcher
+future
+zarr
+
