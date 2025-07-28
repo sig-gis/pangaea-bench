@@ -12,8 +12,7 @@ merge_method: "mean"
 # depth: 12
 # mlp_ratio: 4
 # multi_temporal: False
-modalities: ["S2L2A"]
-# modalities: ["S2L2A", "S1GRD"]
+modalities: ["S2L2A", "S1GRD"]
 
 input_bands:
   optical:
@@ -30,9 +29,9 @@ input_bands:
     - B10
     - B11
     - B12
-  # sar:
-  #   - VV
-  #   - VH
+  sar:
+    - VV
+    - VH
 
 output_layers:
   - 7

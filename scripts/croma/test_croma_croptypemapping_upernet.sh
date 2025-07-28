@@ -1,10 +1,11 @@
 torchrun pangaea/run.py \
     --config-name=train \
-    dataset=hlsburnscars \
-    encoder=terramind_large \
-    decoder=seg_upernet \
-    preprocessing=seg_default \
+    dataset=croptypemapping \
+    encoder=croma_joint \
+    decoder=seg_upernet_mt_ltae \
+    preprocessing=seg_resize \
     criterion=cross_entropy \
     task=segmentation \
+    task.evaluator.inference_mode=whole \
     limited_label_train=0.1 \
     limited_label_strategy=stratified

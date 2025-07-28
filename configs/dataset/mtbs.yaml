@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.mtbs.MTBSBurnSeverity
 dataset_name: MTBSBurnSeverity
-root_path: ./data/mtbs
+root_path: mnt/disks/eofm-benchmark/data/mtbs
 download_url: None
 auto_download: False
 img_size: 512

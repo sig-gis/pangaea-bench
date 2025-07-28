@@ -1,8 +1,10 @@
 torchrun pangaea/run.py \
     --config-name=train \
     dataset=mtcropclassification \
-    encoder=prithvi\
+    encoder=terramind_large\
     decoder=seg_upernet_mt_ltae\
     preprocessing=seg_default \
     criterion=cross_entropy \
-    task=segmentation
+    task=segmentation \
+    limited_label_train=0.1 \
+    limited_label_strategy=stratified

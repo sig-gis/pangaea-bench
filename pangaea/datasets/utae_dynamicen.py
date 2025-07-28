@@ -113,7 +113,8 @@ class DynamicEarthNet(RawGeoFMDataset):
 
 
     def set_files(self):
-        self.file_list = os.path.join(self.root_path, "dynnet_training_splits", f"{self.split}" + ".txt")
+        # self.file_list = os.path.join(self.root_path, "dynnet_training_splits", f"{self.split}" + ".txt")
+        self.file_list = os.path.join(self.root_path, f"{self.split}" + ".txt")
 
         file_list = [line.rstrip().split(' ') for line in tuple(open(self.file_list, "r"))]
         #for

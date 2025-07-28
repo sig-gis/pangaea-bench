@@ -4,4 +4,4 @@ channels: 512
 encoder: null
 num_classes: ${dataset.num_classes}
 finetune: false
-interp_method: PixelShuffle
+interp_method: interpolate

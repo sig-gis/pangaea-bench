@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.geobench.mneontree.mNeonTree
 dataset_name: mNeonTree
-root_path: ${oc.env:GEO_BENCH_DIR}/segmentation_v1.0/m-NeonTree
+root_path: mnt/disks/eofm-benchmark/data/geobench/segmentation_v1.0/m-NeonTree
 download_url: "recursix/geo-bench-1.0"
 auto_download: True
 

@@ -1,8 +1,8 @@
-torchrun pangaea/run.py \
+HYDRA_FULL_ERROR=1 torchrun pangaea/run.py \
     --config-name=train \
-    dataset=hlsburnscars \
+    dataset=dynamicen \
     encoder=terramind_large \
-    decoder=seg_upernet \
+    decoder=seg_upernet_mt_ltae \
     preprocessing=seg_default \
     criterion=cross_entropy \
     task=segmentation \

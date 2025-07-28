@@ -4,7 +4,7 @@ taskGroups:
     - container:
         imageUri: us-west1-docker.pkg.dev/eofm-benchmark/pangaea-bench/pangaea
         commands:
-          - scripts/prithvi/test_prithvi_mtbs_upernet.sh
+          - scripts/terramind/limited_label_10pct/terramind_dynamicearthnet_upernet.sh
     volumes:
     - gcs:
         remotePath: "eofm-benchmark"

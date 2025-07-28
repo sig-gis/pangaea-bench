@@ -4,7 +4,7 @@ taskGroups:
     - container:
         imageUri: us-west1-docker.pkg.dev/eofm-benchmark/pangaea-bench/pangaea
         commands:
-          - scripts/linear_probe_exps.sh
+          - scripts/terramind_limited_label.sh
     volumes:
     - gcs:
         remotePath: "eofm-benchmark"
@@ -12,8 +12,8 @@ taskGroups:
     computeResource:
         cpuMilli: 12000
         memoryMib: 85000
-  taskCount: 6
-  parallelism: 6
+  taskCount: 11
+  parallelism: 11
   taskCountPerNode: 1
   schedulingPolicy: "AS_SOON_AS_POSSIBLE"
 allocationPolicy:

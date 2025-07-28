@@ -86,8 +86,8 @@ class Prithvi_Encoder(Encoder):
             self.num_frames = 1
             
         # multitemporal output to play well with decoders
-        self.output_dim = [o*self.num_frames for o in self.output_dim]
-        self.embed_dim *= self.num_frames
+        # self.output_dim = [o*self.num_frames for o in self.output_dim]
+        # self.embed_dim *= self.num_frames
 
         self.patch_size = patch_size
         self.in_chans = in_chans
@@ -258,13 +258,14 @@ class Prithvi_Encoder(Encoder):
                 out = (
                     x[:, 1:, :]
                     .permute(0, 2, 1)
-                    .reshape(
+                    .view(
                         x.shape[0],
                         -1,
-                        # self.num_frames,
+                        self.num_frames,
                         self.img_size // self.patch_size,
                         self.img_size // self.patch_size,
                     )
+                    .squeeze(2)
                     .contiguous()
                 )
                 output.append(out)

@@ -1,0 +1,18 @@
+_target_: pangaea.decoders.fcn.FCNDecoder
+
+# overwritten in run
+encoder: null
+finetune: ${finetune}
+
+# to adapt
+channels: 1024
+num_classes: ${dataset.num_classes}
+multi_temporal: ${dataset.multi_temporal}
+
+num_convs: 4
+kernel_size: 3
+concat_input: true
+dilation: 1
+interp_method: PixelShuffle
+
+multi_temporal_strategy: ltae

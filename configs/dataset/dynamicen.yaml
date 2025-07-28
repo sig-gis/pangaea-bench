@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.utae_dynamicen.DynamicEarthNet
 dataset_name: DynamicEarthNet
-root_path: ./data/DynamicEarthNet
+root_path: mnt/disks/eofm-benchmark/data/dynamicearthnet
 download_url: None
 auto_download: False
 
