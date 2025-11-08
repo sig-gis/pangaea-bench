@@ -28,6 +28,7 @@ class BasePreprocessor:
 
     def check_dimension(self, data: dict[str, torch.Tensor | dict[str, torch.Tensor]]):
         """check dimension (C, T, H, W) of data"""
+        print(data.keys())
         for k, v in data["image"].items():
             if len(v.shape) != 4:
                 raise AssertionError(
@@ -509,9 +510,14 @@ class RandomCrop(BasePreprocessor):
 
         i, j, h, w = self.get_params(data=data)
 
+        data["crop"] = {}
         for k, v in data["image"].items():
+
+            data["crop"][k] = [v.shape, i, j, h, w] 
+ 
             data["image"][k] = TF.crop(v, i, j, h, w)
 
+        data["crop"]["target"] = [data["target"].shape, i, j, h, w]
         data["target"] = TF.crop(data["target"], i, j, h, w)
 
         return data
@@ -651,9 +657,14 @@ class ImportanceRandomCrop(RandomCrop):
         crop_idx = np.random.choice(self.num_trials, p=crop_weights)
         i, j, h, w = crop_candidates[crop_idx]
 
+        data["crop"] = {}
         for k, v in data["image"].items():
+
+            data["crop"][k] = [v.shape, i, j, h, w]
+
             data["image"][k] = TF.crop(v, i, j, h, w)
 
+        data["crop"]["target"] = [data["target"].shape, i, j, h, w]
         data["target"] = TF.crop(data["target"], i, j, h, w)
 
         return data
@@ -958,7 +969,11 @@ class RandomResizedCrop(BasePreprocessor):
 
         i, j, h, w = self.get_params((h_img, w_img), self.scale, self.ratio)
 
+        data["crop"] = {}
         for k, v in data["image"].items():
+
+            data["crop"][k] = [v.shape, i, j, h, w]
+
             data["image"][k] = TF.resized_crop(
                 data["image"][k],
                 i,
@@ -971,6 +986,7 @@ class RandomResizedCrop(BasePreprocessor):
             )
 
         if self.resize_target:
+            data["crop"]["target"] = [data["target"].shape, i, j, h, w]
             if torch.is_floating_point(data["target"]):
                 data["target"] = TF.resized_crop(
                     data["target"].unsqueeze(0),
@@ -982,6 +998,7 @@ class RandomResizedCrop(BasePreprocessor):
                     T.InterpolationMode.BILINEAR,
                 ).squeeze(0)
             else:
+                data["crop"]["target"] = [data["target"].shape, i, j, h, w]
                 data["target"] = TF.resized_crop(
                     data["target"].unsqueeze(0),
                     i,
@@ -993,6 +1010,7 @@ class RandomResizedCrop(BasePreprocessor):
                 ).squeeze(0)
 
         else:
+            data["crop"]["target"] = [data["target"].shape, i, j, h, w]
             data["target"] = TF.crop(data["target"], i, j, h, w)
 
         return data
