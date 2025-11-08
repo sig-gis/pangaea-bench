@@ -2483,11 +2483,14 @@ class TerraMindViT(Encoder):
         # for key, value in kwargs.items():
         #     d[key] = value
 
-        d = {}
-        if "sar" in image:
-            d["S1GRD"] = image["sar"].squeeze(2)
-        if "optical" in image:
-            d["S2L2A"] = image["optical"].squeeze(2)
+        d = image
+        #if "sar" in image:
+        #    d["S1GRD"] = image["sar"].squeeze(2)
+        #if "optical" in image:
+        #    d["S2L2A"] = image["optical"].squeeze(2)
+
+        print("HERE IN TERRAMIND", self.mod_name_mapping.keys(), self.encoder_embeddings.keys(), d.keys())
+
 
         if self.training and self.modality_drop_rate:
             # Drop random modalities during training
@@ -2505,7 +2508,8 @@ class TerraMindViT(Encoder):
         for mod, tensor in d.items():
             assert mod in self.mod_name_mapping.keys(), \
                 f'No patch embedding layer found for modality {mod}.'
-
+ 
+            print("HERE IN TERRAMIND", mod, tensor.shape, self.mod_name_mapping.keys(), self.encoder_embeddings.keys())
             # print(tensor.shape)
             # print(self.encoder_embeddings[self.mod_name_mapping[mod]])
             mod_dict = self.encoder_embeddings[self.mod_name_mapping[mod]](tensor)
