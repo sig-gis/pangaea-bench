@@ -39,6 +39,97 @@ import numpy as np
 import zarr
 
 
+def expected_calibration_error(expected, observed, total_count = None) -> float:
+     r"""
+     Compute the expected calibration error.
+ 
+     $$ ECE = \sum_{i=1}^{M} w_i \left|p_{obs} - p_{exp}\right| $$,
+  
+     where $w_i = \frac{N_i}{N}$ if `count` is present in the calibration dataframe, and $w_i = 1/M$ otherwise.
+  
+     Args:
+          calibration_df (pd.DataFrame): The calibration dataframe.
+
+     Returns:
+          `float`: The expected calibration error.
+     """
+
+     abs_diff = np.absolute(expected - observed)
+
+     if total_count is not None:
+          total_count = total_count.sum()
+          weight = total_count / total_count
+          return (abs_diff * weight).sum()
+
+     return  abs_diff.mean()
+
+
+
+
+
+def plot_calibration(
+      cdf,
+      out_path,
+      label = None,
+      show_ece: bool = True,
+      show_ideal: bool = True,
+      show_area: bool = True,
+      ax = None,
+  ) -> plt.Axes:
+      """
+      Plot the calibration curve for a model.
+  
+      Args:
+          df: DataFrame containing the calibration data.
+          label: Label for the calibration curve.
+          show_ece: Whether to display the Expected Calibration Error (ECE) in the plot.
+          show_ideal: Whether to display the ideal calibration line.
+          show_area: Whether to color the area between the calibration curve and the ideal line.
+          ax: Matplotlib axes to plot on.
+  
+      Returns:
+          Matplotlib axes with the calibration plot.
+      """
+
+      print("Plotting P-Value")
+
+      if ax is None:
+          fig, ax = plt.subplots(figsize=(5, 5))
+
+      linspace=np.linspace(0, 1, num=len(cdf))
+      ax.plot(linspace, cdf, label='observed')
+      if show_ideal:
+          # Adding a line plot for perfectly calibrated predictions
+          ax.plot(linspace, linspace, label='null / uniform (y=x)')
+
+      if show_area:
+          # Coloring area between the calibration line and the perfect calibration line
+          ax.fill_between(linspace, linspace, cdf, alpha=0.2)
+
+      ece = -1
+      # Adding the Expected Calibration Error (ECE) value as a text in the plot in bottom right corner
+      if show_ece:
+          ece = expected_calibration_error(linspace, cdf)
+          ax.text(1, 0.05, f'ECE: {ece:.3f}', ha='right', va='center', transform=ax.transAxes)
+
+      # Setting labels with increased font size for better readability
+      ax.set_xlabel('Expected Proportion', fontsize=12)
+      ax.set_ylabel('Observed Proportion', fontsize=12)
+
+      ax.legend()
+      # Set the range of x and y axes
+      ax.set_xlim([0, 1])
+      ax.set_ylim([0, 1])
+
+      ax.legend(frameon=False)
+      plt.show()
+      plt.savefig(out_path)
+      plt.clf()
+      plt.close(fig)
+
+      return ax, ece
+
+
 
 def bootstrap_null(graph, number_of_bootstraps=25, n_components=None, umap_n_neighbors=32, acorn=None, fname_uid=""):
     '''
@@ -150,7 +241,9 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     #- A more statistically rigorous way to determine *if* a sample has moved
     #- is to use the hypothesis test described in the paper
 
+    ece_dict = {}
     for i, model_name in enumerate(model_names):
+        ece_dict[model_name] ={}
         for j in range(0,len(model_names)):
             #if i == j:
             #    continue
@@ -183,19 +276,21 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
             #- Looking at distribution of p-values relative to the uniform dist
             #- there doesnt seem to be a systematic difference
 
-            linspace=np.linspace(0, 1, num=25+1)
-            cdf  = get_cdf(p_values, num=25+1)
+            #linspace=np.linspace(0, 1, num=25+1)
+            cdf  = get_cdf(p_values, num=500)
+            _, ece = plot_calibration(cdf, os.path.join(out_dir, "P_Value_Dist_" + model_name + "_" + model_name2 + ".png"))
+            ece_dict[model_name][model_names[j]] = ece
 
-            fig, ax = plt.subplots(1,1)
+            #fig, ax = plt.subplots(1,1)
 
-            ax.plot(linspace, cdf, label='observed')
-            ax.plot(linspace, linspace, label='null / uniform (y=x)')
-            ax.legend()
-            plt.show()
-            print("Plotting P-Value")
-            plt.savefig(os.path.join(out_dir, "P_Value_Dist_" + model_name + "_" + model_name2 + ".png"))
-            plt.clf()
-            plt.close(fig)
+            #ax.plot(linspace, cdf, label='observed')
+            #ax.plot(linspace, linspace, label='null / uniform (y=x)')
+            #ax.legend()
+            #plt.show()
+            #print("Plotting P-Value")
+            #plt.savefig(os.path.join(out_dir, "P_Value_Dist_" + model_name + "_" + model_name2 + ".png"))
+            #plt.clf()
+            #plt.close(fig)
     fig, ax = plt.subplots()
     #- Get low-dimensional representations of embedding models.
     #- "Families" of embedding models are close to each other in this space.
@@ -221,6 +316,43 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
     plt.show()
     plt.savefig(os.path.join(out_dir, "Embed_Space_Dist_Mtx.png"))
     plt.close(fig)
+
+    return ece_dict
+
+def summarize_ece_diffs(ece_dict_full):
+
+    diffs_cross_proj = {}
+
+    proj_order = ["umap", "tsne", "pca"]
+
+    for i in range(0,2):
+        for j in range(1,3):
+            key = proj_order[i] + "_" + proj_order[j]
+            diffs_cross_proj[key] = []
+            for model in ece_dict_full[proj_order[i]].keys():
+                for model2 in ece_dict_full[proj_order[i]][model].keys():
+                    diffs_cross_proj[key].append((ece_dict_full[proj_order[i]][model][model2] - ece_dict_full[proj_order[j]][model][model2])**2)
+   
+    for key in diffs_cross_proj.keys():
+        print(key, "RMSD", math.sqrt(np.mean(diffs_cross_proj[key])))
+     
+
+    diffs_same_proj = {}
+    for proj in ece_dict.keys():
+        diffs_same_proj[proj] = []
+        tmp = []
+        for model in ece_dict_full[proj].keys():
+            for model2 in ece_dict_full[proj][model].keys():
+                tmp.append(ece_dict_full[proj][model][model2])
+        for i in range(0, len(tmp)-1):
+            for j in range(1, len(tmp)):
+                diffs_same_proj[proj].append((tmp[i] - tmp[j])**2)
+
+    for key in diffs_same_proj:
+        print(key, "RMSD", math.sqrt(np.mean(diffs_same_proj[key])))
+
+
+
 
 @hydra.main(version_base=None, config_path="../../configs", config_name="embed_compare")
 def main(cfg: DictConfig) -> None:
@@ -274,13 +406,13 @@ def main(cfg: DictConfig) -> None:
         model_names = [
             "croma_optical",
             "dofa",
-            "prithvi",
+            #"prithvi",
             "satlasnet_mi",
             "scalemae",
             "spectralgpt",
-            "ssl4eo_data2vec",
-            "ssl4eo_dino",
-            "ssl4eo_mae_optical",
+            #"ssl4eo_data2vec",
+            #"ssl4eo_dino",
+            #"ssl4eo_mae_optical",
             "ssl4eo_moco",
             "unet_encoder_mi",
             "terramind_large",
@@ -296,25 +428,35 @@ def main(cfg: DictConfig) -> None:
     choices = OmegaConf.to_container(HydraConfig.get().runtime.choices)
     out_dir = os.path.join(cfg.out_dir,cfg.dataset.dataset_name)
 
-    knn_graphs = {}
-    mx_dim_1 = 0
-    mx_dim_0 = 0
-    for key in model_names:
-        print(os.path.join(out_dir, key, key + ".UMAP.knn_graph.zarr"))
-        knn_graphs[key] = zarr.load(os.path.join(out_dir, key, key + ".UMAP.knn_graph.zarr")).astype(np.float32)
-        mx_dim_1 = max(mx_dim_1, knn_graphs[key].shape[1])
-        mx_dim_0 = max(mx_dim_0, knn_graphs[key].shape[0])
-        #knn_graphs[key] = knn_graphs[key].astype(np.int8)
+    #knn_graphs = {}
+    #mx_dim_1 = 0
+    #mx_dim_0 = 0
+    #projection = "tsne" #"pca"
 
-    #for key in model_names:
-    #    new_arr = np.zeros((mx_dim_0, mx_dim_1), dtype=np.int8)
-    #    new_arr[0:knn_graphs[key].shape[0], 0:knn_graphs[key].shape[1]] = knn_graphs[key]
-    #    knn_graphs[key] = new_arr
-    #    print(new_arr.shape)
 
-    run_nomic_analysis(model_names, knn_graphs, out_dir)
+    ece_dict_full = {}
+    for projection in ["tsne", "pca", "umap"]:
+        knn_graphs = {}
+        mx_dim_1 = 0
+        mx_dim_0 = 0
+        for key in model_names:
+            print(os.path.join(out_dir, key, key + "." + projection.upper() + ".knn_graph.zarr"))
+            knn_graphs[key] = zarr.load(os.path.join(out_dir, key, key + "." + projection.upper() + ".knn_graph.zarr")).astype(np.float32)
+            mx_dim_1 = max(mx_dim_1, knn_graphs[key].shape[1])
+            mx_dim_0 = max(mx_dim_0, knn_graphs[key].shape[0])
+            #knn_graphs[key] = knn_graphs[key].astype(np.int8)
 
+        #for key in model_names:
+        #    new_arr = np.zeros((mx_dim_0, mx_dim_1), dtype=np.int8)
+        #    new_arr[0:knn_graphs[key].shape[0], 0:knn_graphs[key].shape[1]] = knn_graphs[key]
+        #    knn_graphs[key] = new_arr
+        #    print(new_arr.shape)
+
+        ece_dict = run_nomic_analysis(model_names, knn_graphs, out_dir)
+        ece_dict_full[projection] = ece_dict
 				                
+    summarize_ece_diffs(ece_dict_full)
+
 
 
 if __name__ == "__main__":
