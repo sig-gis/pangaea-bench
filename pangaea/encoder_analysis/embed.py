@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from pangaea.datasets.base import GeoFMDataset, GeoFMSubset, RawGeoFMDataset
+from pangaea.datasets.terramesh import TerraMesh
 from pangaea.decoders.base import Decoder
 from pangaea.encoders.base import Encoder
 from pangaea.engine.evaluator import Evaluator
@@ -184,12 +185,16 @@ def main(cfg: DictConfig) -> None:
         os.makedirs(out_dir, exist_ok = True)
     #embed train data
 
+    """
     for batch_idx, data in enumerate(train_loader):
-        image, target, meta = data["image"], data["target"], data['metadata']
+ 
+        if "filename" in data:
+            image, target, image_fname, meta = data["image"], data["target"],data["filename"], data['metadata']
+            image_fname = image_fname[0]
+        else:
+            image, target, meta = data["image"], data["target"], data['metadata']
+            image_fname = meta['image_filename'][0]
 
-        
-
-        image_fname = meta['image_filename'][0]
 
         image = {modality: value.to(device) for modality, value in image.items()}
 
@@ -225,11 +230,13 @@ def main(cfg: DictConfig) -> None:
         np.save(os.path.join(out_dir,logit_out_fname),feat)
 
 
+    """
+
     out_dir = os.path.join(cfg.embed_dir,cfg.dataset.dataset_name,choices["encoder"],'test/')
 
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir, exist_ok = True)
-    
+     
     #embed test data
     for batch_idx, data in enumerate(test_loader):
         if "filename" in data:
@@ -240,12 +247,11 @@ def main(cfg: DictConfig) -> None:
             image_fname = meta['image_filename'][0]
 
 
-
         image = {modality: value.to(device) for modality, value in image.items()}
 
         target = target.to(device)
         if encoder.multi_temporal:
-            if not train_dataset.multi_temporal:
+            if not test_dataset.multi_temporal:
                 with torch.no_grad():
                     feat = encoder(image)
                 if encoder.multi_temporal_output:
@@ -254,25 +260,32 @@ def main(cfg: DictConfig) -> None:
                 with torch.no_grad():
                     feat = encoder(image)
         else:
-            if not train_dataset.multi_temporal:
+            if not test_dataset.multi_temporal:
                 with torch.no_grad():
                     feat = encoder({k: v[:, :, 0, :, :] for k, v in image.items()})
             else:
                 feats = []
-                for i in range(train_dataset.multi_temporal):
+                for i in range(test_dataset.multi_temporal):
                     with torch.no_grad():
                         feats.append(
                             torch.stack(encoder({k: v[:, :, i, :, :] for k, v in image.items()}),dim=0)
                         )
-                feat = torch.stack(feats,dim=2)
-
+                    feat = torch.stack(feats,dim=2)
 
         feat = feat[-1]
         feat = feat[0].cpu().detach().numpy()
 
+        
+
+        #Saving crop info to allow for full reconstruction and uniform sampling across the same image in multiple runs
+        if "crop" in data:
+            clip_info_out_fname = "crop_info_" + os.path.splitext(image_fname)[0] + '.npy'
+            for k, v in data["image"].items():
+                print(data["crop"][k], k, data["crop"]["target"])
+            np.save(os.path.join(out_dir,clip_info_out_fname),data["crop"])
 
         logit_out_fname = 'embd_' + os.path.splitext(image_fname)[0] + '.npy'
-        print(logit_out_fname)
+        print(logit_out_fname, os.path.join(out_dir,logit_out_fname))
 
         np.save(os.path.join(out_dir,logit_out_fname),feat)
 
