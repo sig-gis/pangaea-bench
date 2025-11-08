@@ -35,9 +35,11 @@ from pangaea.utils.utils import (
 import math
 import zarr
 import umap
+import openTSNE
 import joblib
 import rasterio
 
+from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 
 import scipy
@@ -74,7 +76,7 @@ def build_knn_graph(embed, out_fname):
     zarr.save(out_fname, knn_graph_out)
 
 
-def get_indices(cfg, image_fname, target, indices_dir) -> None:
+def get_indices(cfg, image_fname, target, indices_dir, shape_info) -> None:
  
     #Get or set indices used to subset embeddings from individual files
     index_fname = os.path.join(indices_dir, os.path.splitext(image_fname)[0] + ".indices.zarr")
@@ -91,30 +93,56 @@ def get_indices(cfg, image_fname, target, indices_dir) -> None:
             if i == ignore_class:
                 continue
 
-            sub_inds = np.where(target == i)[0]
+            sub_inds_init = np.where(target == i)[0]
+            sub_inds = []
+
+            #only use middle of scene to account for cropping
+            print(target.shape)
+
+            miny = int(0.15 * shape_info[0])
+            maxy = int(0.85 * shape_info[0])
+            minx = int(0.15 * shape_info[1])
+            maxx = int(0.85 * shape_info[1])
+            print(sub_inds_init, (int(miny) * shape_info[1]), (int(maxy) * shape_info[1]))
+            for si in range(len(sub_inds_init)):
+                if sub_inds_init[si] > (int(miny) * shape_info[1]) and \
+                    sub_inds_init[si] < (int(maxy) * shape_info[1]) and \
+                    sub_inds_init[si] % shape_info[0] > minx and \
+                    sub_inds_init[si] % shape_info[0] < maxx:
+
+                        sub_inds.append(sub_inds_init[si])
+
             if len(sub_inds) < 1:
                 continue
 
+
             #Ensure each class is represented - can add stratification later
             if len(sub_inds)  > cfg.label_file_subset:
-                selection_inds  = np.random.choice(len(sub_inds), size=cfg.label_file_subset, replace=False)
+                selection_inds  = np.random.choice(len(sub_inds), size=cfg.label_file_subset, replace=False).astype(np.int32)
+                sub_inds = np.array(sub_inds)
+                print(selection_inds)
                 sub_inds = sub_inds[selection_inds]
+                
 
             if final_inds is None:
                  final_inds = np.array(sub_inds)
             else:
                 final_inds = np.concatenate((final_inds, sub_inds), axis=0)
+            print(final_inds, "HERE")
 
 
+        print(final_inds)
         zarr.save(index_fname, final_inds)
     else:
         final_inds = zarr.load(index_fname)
 
+
+    print(final_inds)
     return final_inds
 
 
 
-def rescale_embed(embed, image_shape, device):
+def rescale_embed(embed, image_shape, device, target, crop_info = None):
  
      ind = 0
      if embed.ndim > 3:
@@ -146,6 +174,20 @@ def rescale_embed(embed, image_shape, device):
      #Adjusting to account for potential off-by-ones
      if embed.shape[-1] != image_shape:
          embed = F.interpolate(embed, size=(image_shape, image_shape), mode='nearest')
+    
+     print(embed.shape, crop_info)
+ 
+     if crop_info is not None:
+         tmp = torch.zeros((embed.shape[0], embed.shape[1], crop_info[0][-2], crop_info[0][-1]))
+         tmp[:,:,crop_info[1]:crop_info[1]+crop_info[3],crop_info[2]:crop_info[2]+crop_info[4]] = embed
+         embed = tmp
+
+         tmp2 = torch.zeros((1, crop_info[0][-2], crop_info[0][-1]))
+         #print(tmp2.shape, target.shape)
+         tmp2[:,crop_info[1]:crop_info[1]+crop_info[3],crop_info[2]:crop_info[2]+crop_info[4]] = target
+         target = tmp2 
+
+     target = target.flatten()
 
      embed = torch.permute(embed, (0,2,3,1)).flatten(start_dim=0, end_dim=2)
  
@@ -153,35 +195,53 @@ def rescale_embed(embed, image_shape, device):
          embed = embed.detach().cpu().numpy()
 
  
-     return embed
+     return embed, target
 
-def train_and_gen_projection(embed, out_dir, cfg):
+def train_and_gen_projection(embed, out_dir, cfg, projection = "umap"):
    
     reducer = None
-    scaler = None
-    reducer_fname = os.path.join(out_dir, 'umap_model.joblib')
-    #scaler_fname = os.path.join(out_dir, 'umap_pre_scaler.joblib')
-
-    #if not os.path.exists(scaler_fname):
-    #    scaler = MinMaxScaler()
-    #    embed = scaler.fit_transform(embed)
-    #    joblib.dump(scaler, scaler_fname)
-    #else:
-    #    scaler = joblib.load(scaler_fname)
-    #    embed = scaler.transform(embed)    
+     
+    if projection == "umap":
+        reducer_fname = os.path.join(out_dir, 'umap_model.joblib')
  
-    if not os.path.exists(reducer_fname):
-        print("Training UMAP and projecting data", embed.shape)
-        reducer = umap.UMAP(metric="cosine", n_neighbors=cfg.umap_n_neighbors, \
-            min_dist=cfg.umap_min_dist, n_components=cfg.umap_n_components, spread=cfg.umap_spread)
-        embed = reducer.fit_transform(embed)
-        joblib.dump(reducer, reducer_fname)
-    else:
-        print("UMAP projecting data", embed.shape)
-        reducer = joblib.load(reducer_fname)
-        embed = reducer.transform(embed)  
+        if not os.path.exists(reducer_fname):
+            print("Training UMAP and projecting data", embed.shape)
+            reducer = umap.UMAP(metric="cosine", n_neighbors=cfg.umap_n_neighbors, \
+                min_dist=cfg.umap_min_dist, n_components=cfg.umap_n_components, spread=cfg.umap_spread)
+            embed = reducer.fit_transform(embed)
+            joblib.dump(reducer, reducer_fname)
+        else:
+            print("UMAP projecting data", embed.shape)
+            reducer = joblib.load(reducer_fname)
+            embed = reducer.transform(embed)  
 
-    return embed, scaler, reducer
+    elif projection == "pca":
+        reducer_fname = os.path.join(out_dir, 'pca_model.joblib')
+
+        if not os.path.exists(reducer_fname):
+            print("Computing PCs and projecting data", embed.shape)
+            reducer = PCA(n_components=0.99, svd_solver = 'full')
+            embed = reducer.fit_transform(embed)
+            joblib.dump(reducer, reducer_fname)
+        else:
+            print("Projecting PCs", embed.shape)
+            reducer = joblib.load(reducer_fname)
+            embed = reducer.transform(embed)
+    else:
+
+        reducer_fname = os.path.join(out_dir, 'tsne_model.joblib')
+ 
+        if not os.path.exists(reducer_fname):
+            print("Training TSNE and projecting data", embed.shape)
+            reducer = openTSNE.TSNE(n_jobs=50, verbose=True, metric="cosine", exaggeration = 4, random_state=42)
+            embed = reducer.fit(embed)
+            joblib.dump(reducer, reducer_fname)
+        else:
+            print("TSNE projecting data", embed.shape)
+            reducer = joblib.load(reducer_fname)
+            embed = reducer.transform(embed)
+ 
+    return embed, reducer
 
 
 @hydra.main(version_base=None, config_path="../../configs", config_name="knn_graph")
@@ -264,21 +324,34 @@ def main(cfg: DictConfig) -> None:
 
         #Load embeddings for single input file
         embed_fname = os.path.join(embed_dir, choices["encoder"], "test", "embd_" + os.path.splitext(image_fname)[0] + ".npy")
+        crop_info_fname = os.path.join(embed_dir, choices["encoder"], "test", "crop_info_" + os.path.splitext(image_fname)[0] + ".npy")
         embed = np.load(embed_fname)
 
-        print(embed_fname)
-         
+        crop_info = None
+        if os.path.exists(crop_info_fname):
+            crop_info = np.load(crop_info_fname, allow_pickle=True).item()
+
+        print(crop_info)
+
+        print(embed_fname,  cfg.dataset.img_size)
+        for k, v in image.items():
+            crop_info = crop_info[k]
+            img_size = v[:, :, 0, :, :].shape
+        img_size = img_size[-1] 
+ 
+        print(crop_info)
+
         #Rescale embedding to original dimension
-        embed = rescale_embed(embed, cfg.dataset.img_size, device)
+        embed, target = rescale_embed(embed, img_size, device, target, crop_info)
      
 
         #Flatten dimensions, except feature/channel dim
 
-        target = target.flatten()
+        #target = target.flatten()
 
         #Get subset and apply indices, sampling each class available - subsetting done due to compuational complexity of tasks
 
-        indices = get_indices(cfg, image_fname, target, indices_dir)
+        indices = get_indices(cfg, image_fname, target, indices_dir, (crop_info[0][-2], crop_info[0][-1]))
         
        
         sub_embed = embed[indices,:]
@@ -294,36 +367,38 @@ def main(cfg: DictConfig) -> None:
             embed_full = np.concatenate((sub_embed, embed_full))
             target_full = np.concatenate((sub_target, target_full))
 
+ 
+    for projection in ["tsne", "umap"]: #, "pca"]:
+        #projection = "tsne" #"umap" #"pca"
+        projection_data, reducer = train_and_gen_projection(embed_full, out_dir, cfg, projection=projection)
 
-    projection_data, scaler, reducer = train_and_gen_projection(embed_full, out_dir, cfg)
+        #del embed_full
 
-    del embed_full
+        #Shift indices to start w/ zero - we can then use GeoTiff files for output / viz
+        shift_1 = abs(min(projection_data[:,0]))
+        shift_2 = abs(min(projection_data[:,1]))
 
-    #Shift indices to start w/ zero - we can then use GeoTiff files for output / viz
-    shift_1 = abs(min(projection_data[:,0]))
-    shift_2 = abs(min(projection_data[:,1]))
+        projection_data[:,0] = projection_data[:,0] + shift_1
+        projection_data[:,1] = projection_data[:,1] + shift_2
 
-    projection_data[:,0] = projection_data[:,0] + shift_1
-    projection_data[:,1] = projection_data[:,1] + shift_2
+        #Scale data to expand for viz.
+        projection_data = (projection_data*10).astype(np.int32)
 
-    #Scale data to expand for viz.
-    projection_data = (projection_data*10).astype(np.int32)
+        max_ind_1 = int(max(projection_data[:,0]))
+        max_ind_2 = int(max(projection_data[:,1]))
+        final_projection = np.zeros((max_ind_1+1, max_ind_2+1), dtype=np.int32) - 1.0
 
-    max_ind_1 = int(max(projection_data[:,0]))
-    max_ind_2 = int(max(projection_data[:,1]))
-    final_projection = np.zeros((max_ind_1+1, max_ind_2+1), dtype=np.int32) - 1.0
+        for i in range(target_full.shape[0]):
+            final_projection[int(projection_data[i,0]), int(projection_data[i,1])] = target_full[i]
 
-    for i in range(target_full.shape[0]):
-        final_projection[int(projection_data[i,0]), int(projection_data[i,1])] = target_full[i]
+        ras_meta = {'driver': 'GTiff', 'dtype': 'int32', 'nodata': -1, 'width': final_projection.shape[1], 'height': final_projection.shape[0], 'count': 1, 'tiled': False, 'interleave': 'band'}
 
-    ras_meta = {'driver': 'GTiff', 'dtype': 'int32', 'nodata': -1, 'width': final_projection.shape[1], 'height': final_projection.shape[0], 'count': 1, 'tiled': False, 'interleave': 'band'}
-
-    out_file = os.path.join(out_dir, choices["encoder"] + ".UMAP_Labels.tif")
-    with rasterio.open(out_file, 'w', **ras_meta) as dst:
-        dst.write(final_projection, 1)
-
-    print("Building KNN Graph")
-    build_knn_graph(projection_data[:100], os.path.join(out_dir, choices["encoder"] + ".UMAP.knn_graph.zarr"))
+        out_file = os.path.join(out_dir, choices["encoder"] + "." + projection.upper()  + "_Labels.tif")
+        with rasterio.open(out_file, 'w', **ras_meta) as dst:
+            dst.write(final_projection, 1)
+    
+        print("Building KNN Graph")
+        build_knn_graph(projection_data[:100], os.path.join(out_dir, choices["encoder"] + "." + projection.upper() + ".knn_graph.zarr"))
 
    
 if __name__ == "__main__":
