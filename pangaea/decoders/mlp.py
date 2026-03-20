@@ -21,7 +21,7 @@ class MLP(Decoder):
         softmax: bool=True,
         interp_mode: str='bilinear',
         align_corners:bool=False,
-        feature_multiplier: int = 1
+        feature_multiplier: int = 1,
     ):
         super().__init__(
             encoder=encoder,

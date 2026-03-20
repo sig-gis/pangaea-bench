@@ -5,7 +5,7 @@ encoder: null
 finetune: ${finetune}
 
 # to adapt
-channels: 1024
+channels: 512
 num_classes: ${dataset.num_classes}
 
 num_convs: 4

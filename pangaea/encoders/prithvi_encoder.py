@@ -237,7 +237,7 @@ class Prithvi_Encoder(Encoder):
             nn.init.constant_(m.bias, 0)
             nn.init.constant_(m.weight, 1.0)
 
-    def forward(self, image):
+    def forward(self, image,return_cls=False):
         # embed patches
         x = image["optical"]
         x = self.patch_embed(x)
@@ -251,26 +251,51 @@ class Prithvi_Encoder(Encoder):
 
         # apply Transformer blocks
 
-        output = []
-        for i, blk in enumerate(self.blocks):
-            x = blk(x)
-            if i in self.output_layers:
-                out = (
-                    x[:, 1:, :]
-                    .permute(0, 2, 1)
-                    .view(
-                        x.shape[0],
-                        -1,
-                        self.num_frames,
-                        self.img_size // self.patch_size,
-                        self.img_size // self.patch_size,
+        if return_cls:
+            output = []
+            cls_tokens = []
+            for i, blk in enumerate(self.blocks):
+                x = blk(x)
+                if i in self.output_layers:
+                    cls_token = x[:,0]
+                    out = (
+                        x[:, 1:, :]
+                        .permute(0, 2, 1)
+                        .view(
+                            x.shape[0],
+                            -1,
+                            self.num_frames,
+                            self.img_size // self.patch_size,
+                            self.img_size // self.patch_size,
+                        )
+                        .squeeze(2)
+                        .contiguous()
                     )
-                    .squeeze(2)
-                    .contiguous()
-                )
-                output.append(out)
+                    output.append(out)
+                    cls_tokens.append(cls_token)
 
-        return output
+            return cls_tokens, output
+        else:
+            output = []
+            for i, blk in enumerate(self.blocks):
+                x = blk(x)
+                if i in self.output_layers:
+                    out = (
+                        x[:, 1:, :]
+                        .permute(0, 2, 1)
+                        .view(
+                            x.shape[0],
+                            -1,
+                            self.num_frames,
+                            self.img_size // self.patch_size,
+                            self.img_size // self.patch_size,
+                        )
+                        .squeeze(2)
+                        .contiguous()
+                    )
+                    output.append(out)
+
+            return output
 
 
     def enforce_single_temporal(self):
