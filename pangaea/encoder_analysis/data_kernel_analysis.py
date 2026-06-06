@@ -27,6 +27,7 @@ from pangaea.utils.utils import (
 
 
 import scipy
+from scipy.sparse import csr_array
 from scipy.spatial.distance import pdist, squareform
 
 #- Graph-stats 
@@ -62,7 +63,7 @@ def bootstrap_null(graph, number_of_bootstraps=25, n_components=None, umap_n_nei
     distances = np.zeros((number_of_bootstraps, n))
 
     for i in tqdm(range(number_of_bootstraps)):
-        graph_b = rdpg(ase_latents, directed=False)
+        graph_b = csr_array(rdpg(ase_latents, directed=False))
 
         bootstrap_latents = OmnibusEmbed(n_components=n_components).fit_transform([graph, graph_b])
         distances[i] = np.linalg.norm(bootstrap_latents[0] - bootstrap_latents[1], axis=1)
@@ -301,7 +302,7 @@ def main(cfg: DictConfig) -> None:
     mx_dim_0 = 0
     for key in model_names:
         print(os.path.join(out_dir, key, key + ".UMAP.knn_graph.zarr"))
-        knn_graphs[key] = zarr.load(os.path.join(out_dir, key, key + ".UMAP.knn_graph.zarr")).astype(np.float32)
+        knn_graphs[key] = csr_array(zarr.load(os.path.join(out_dir, key, key + ".UMAP.knn_graph.zarr")).astype(np.float32))
         mx_dim_1 = max(mx_dim_1, knn_graphs[key].shape[1])
         mx_dim_0 = max(mx_dim_0, knn_graphs[key].shape[0])
         #knn_graphs[key] = knn_graphs[key].astype(np.int8)
