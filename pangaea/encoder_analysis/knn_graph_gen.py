@@ -323,7 +323,7 @@ def main(cfg: DictConfig) -> None:
         dst.write(final_projection, 1)
 
     print("Building KNN Graph")
-    build_knn_graph(projection_data[:100], os.path.join(out_dir, choices["encoder"] + ".UMAP.knn_graph.zarr"))
+    build_knn_graph(projection_data[:10000], os.path.join(out_dir, choices["encoder"] + ".UMAP.knn_graph.zarr"))
 
    
 if __name__ == "__main__":
