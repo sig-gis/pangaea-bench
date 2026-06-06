@@ -272,26 +272,26 @@ def main(cfg: DictConfig) -> None:
 
 
     if int(cfg.dataset.multi_temporal) > 0:
+        #model_names = [
+        #    "croma_optical",
+        #    "dofa",
+        #    "prithvi",
+        #    "satlasnet_mi",
+        #    "scalemae",
+        #    "spectralgpt",
+        #    "ssl4eo_data2vec",
+        #    "ssl4eo_dino",
+        #    "ssl4eo_mae_optical",
+        #    "ssl4eo_moco",
+        #    "unet_encoder_mi",
+        #    "terramind_large",
+        #    "vit_scratch",
+        #     "vit_mi"
+        #]
         model_names = [
-            "croma_optical",
-            "dofa",
-            "prithvi",
-            "satlasnet_mi",
-            "scalemae",
-            "spectralgpt",
-            "ssl4eo_data2vec",
-            "ssl4eo_dino",
-            "ssl4eo_mae_optical",
-            "ssl4eo_moco",
-            "unet_encoder_mi",
-            "terramind_large",
-            "vit_scratch",
-             "vit_mi"
-        ]
-        # model_names = [
-        #"croma_optical",
-        #"dofa",
-        #"prithvi"]
+        "croma_optical",
+        "dofa",
+        "prithvi"]
 
 
     choices = OmegaConf.to_container(HydraConfig.get().runtime.choices)
