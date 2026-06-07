@@ -35,11 +35,14 @@ from pangaea.utils.utils import (
 
 @hydra.main(version_base=None, config_path="../../configs", config_name="calflops")
 def main(cfg: DictConfig) -> None:
-    """Geofm-bench main function.
+
+    """
+    Geofm-bench main function.
 
     Args:
         cfg (DictConfig): main_config
     """
+
     # fix all random seeds
     fix_seed(cfg.seed)
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -49,7 +52,9 @@ def main(cfg: DictConfig) -> None:
     exp_dir = pathlib.Path(cfg.work_dir) / exp_name
     exp_dir.mkdir(parents=True, exist_ok=True)
     task_name='calflops'
-    logger_path = os.path.join(exp_dir,'calflops.log')
+    encoder: Encoder = instantiate(cfg.encoder)
+    logger_path = os.path.join(exp_dir,'calflops.' + encoder.model_name + '.log')
+
 
     logger = init_logger(logger_path, rank=0)
     logger.info("============ Initialized logger ============")
@@ -117,7 +122,7 @@ def main(cfg: DictConfig) -> None:
 
         input = None
         if encoder.multi_temporal:
-            if not train_dataset.multi_temporal:
+            if not test_dataset.multi_temporal:
                 inpt = image
         else:
             inpt = {k: v[:, :, 0, :, :] for k, v in image.items()}        
