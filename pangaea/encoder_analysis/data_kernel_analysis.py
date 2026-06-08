@@ -251,8 +251,8 @@ def main(cfg: DictConfig) -> None:
     model_names = [
         "croma_optical",
         "dofa",
-        "gfmswin",
-        #"prithvi",
+        #"gfmswin",
+        "prithvi",
         #"satlasnet_si",
         #"scalemae",
         #"spectralgpt",
