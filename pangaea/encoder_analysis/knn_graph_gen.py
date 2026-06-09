@@ -41,6 +41,7 @@ import rasterio
 
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
+from sklearn import metrics
 
 import scipy
 from scipy.spatial.distance import pdist, squareform
@@ -97,13 +98,13 @@ def get_indices(cfg, image_fname, target, indices_dir, shape_info) -> None:
             sub_inds = []
 
             #only use middle of scene to account for cropping
-            print(target.shape)
+            #print(target.shape)
 
             miny = int(0.15 * shape_info[0])
             maxy = int(0.85 * shape_info[0])
             minx = int(0.15 * shape_info[1])
             maxx = int(0.85 * shape_info[1])
-            print(sub_inds_init, (int(miny) * shape_info[1]), (int(maxy) * shape_info[1]))
+            #print(sub_inds_init, (int(miny) * shape_info[1]), (int(maxy) * shape_info[1]))
             for si in range(len(sub_inds_init)):
                 if sub_inds_init[si] > (int(miny) * shape_info[1]) and \
                     sub_inds_init[si] < (int(maxy) * shape_info[1]) and \
@@ -120,7 +121,7 @@ def get_indices(cfg, image_fname, target, indices_dir, shape_info) -> None:
             if len(sub_inds)  > cfg.label_file_subset:
                 selection_inds  = np.random.choice(len(sub_inds), size=cfg.label_file_subset, replace=False).astype(np.int32)
                 sub_inds = np.array(sub_inds)
-                print(selection_inds)
+                #print(selection_inds)
                 sub_inds = sub_inds[selection_inds]
                 
 
@@ -128,16 +129,16 @@ def get_indices(cfg, image_fname, target, indices_dir, shape_info) -> None:
                  final_inds = np.array(sub_inds)
             else:
                 final_inds = np.concatenate((final_inds, sub_inds), axis=0)
-            print(final_inds, "HERE")
+            #print(final_inds, "HERE")
 
 
-        print(final_inds)
+        #print(final_inds)
         zarr.save(index_fname, final_inds)
     else:
         final_inds = zarr.load(index_fname)
 
 
-    print(final_inds)
+    #print(final_inds)
     return final_inds
 
 
@@ -175,7 +176,7 @@ def rescale_embed(embed, image_shape, device, target, crop_info = None):
      if embed.shape[-1] != image_shape:
          embed = F.interpolate(embed, size=(image_shape, image_shape), mode='nearest')
     
-     print(embed.shape, crop_info)
+     #print(embed.shape, crop_info)
  
      if crop_info is not None:
          tmp = torch.zeros((embed.shape[0], embed.shape[1], crop_info[0][-2], crop_info[0][-1]))
@@ -234,11 +235,13 @@ def train_and_gen_projection(embed, out_dir, cfg, projection = "umap"):
         if not os.path.exists(reducer_fname):
             print("Training TSNE and projecting data", embed.shape)
             reducer = openTSNE.TSNE(n_jobs=50, verbose=True, metric="cosine", exaggeration = 4, random_state=42)
-            embed = reducer.fit(embed)
+            reducer = reducer.fit(embed)
+            embed = reducer.transform(embed)
             joblib.dump(reducer, reducer_fname)
         else:
             print("TSNE projecting data", embed.shape)
             reducer = joblib.load(reducer_fname)
+            print(reducer_fname)
             embed = reducer.transform(embed)
  
     return embed, reducer
@@ -314,92 +317,122 @@ def main(cfg: DictConfig) -> None:
     #Structure embedding test data
     embed_full = None
     target_full = None
-    for batch_idx, data in enumerate(test_loader):
-        if "filename" in data:
-            image, target, image_fname, meta = data["image"], data["target"],data["filename"], data['metadata']
-            image_fname = image_fname[0]
-        else:
-            image, target, meta = data["image"], data["target"], data['metadata']
-            image_fname = meta['image_filename'][0]
 
-        #Load embeddings for single input file
-        embed_fname = os.path.join(embed_dir, choices["encoder"], "test", "embd_" + os.path.splitext(image_fname)[0] + ".npy")
-        crop_info_fname = os.path.join(embed_dir, choices["encoder"], "test", "crop_info_" + os.path.splitext(image_fname)[0] + ".npy")
-        embed = np.load(embed_fname)
+    n_runs = 10
+    silhouettes = {}
+    for i in range(n_runs):
+     
+        build_knn = False    
+        if i == 0:
+            build_knn = True
 
-        crop_info = None
-        if os.path.exists(crop_info_fname):
-            crop_info = np.load(crop_info_fname, allow_pickle=True).item()
+        runs_subdir = "run_" + str(i) 
 
-        print(crop_info)
+        for batch_idx, data in enumerate(test_loader):
+            if "filename" in data:
+                image, target, image_fname, meta = data["image"], data["target"],data["filename"], data['metadata']
+                image_fname = image_fname[0]
+            else:
+                image, target, meta = data["image"], data["target"], data['metadata']
+                image_fname = meta['image_filename'][0]
 
-        print(embed_fname,  cfg.dataset.img_size)
-        for k, v in image.items():
-            crop_info = crop_info[k]
-            img_size = v[:, :, 0, :, :].shape
-        img_size = img_size[-1] 
+            #Load embeddings for single input file
+            embed_fname = os.path.join(embed_dir, choices["encoder"], "test", "embd_" + os.path.splitext(image_fname)[0] + ".npy")
+            crop_info_fname = os.path.join(embed_dir, choices["encoder"], "test", "crop_info_" + os.path.splitext(image_fname)[0] + ".npy")
+            embed = np.load(embed_fname)
+
+            crop_info = None
+            if os.path.exists(crop_info_fname):
+                crop_info = np.load(crop_info_fname, allow_pickle=True).item()
+
+            #print(crop_info)
+
+            #print(embed_fname,  cfg.dataset.img_size)
+            for k, v in image.items():
+                crop_info = crop_info[k]
+                img_size = v[:, :, 0, :, :].shape
+            img_size = img_size[-1] 
  
-        print(crop_info)
-
-        #Rescale embedding to original dimension
-        embed, target = rescale_embed(embed, img_size, device, target, crop_info)
+            #print(crop_info)
+    
+            #Rescale embedding to original dimension
+            embed, target = rescale_embed(embed, img_size, device, target, crop_info)
      
 
-        #Flatten dimensions, except feature/channel dim
+            #Flatten dimensions, except feature/channel dim
 
-        #target = target.flatten()
+            #target = target.flatten()
 
-        #Get subset and apply indices, sampling each class available - subsetting done due to compuational complexity of tasks
+            #Get subset and apply indices, sampling each class available - subsetting done due to compuational complexity of tasks
 
-        indices = get_indices(cfg, image_fname, target, indices_dir, (crop_info[0][-2], crop_info[0][-1]))
+            indices_subdir = os.path.join(indices_dir, runs_subdir)
+            os.makedirs(indices_subdir, exist_ok=True)
+
+            indices = get_indices(cfg, image_fname, target, indices_subdir, (crop_info[0][-2], crop_info[0][-1]))
         
        
-        sub_embed = embed[indices,:]
-        sub_target = target[indices]
+            sub_embed = embed[indices,:]
+            sub_target = target[indices]
+
+            #Merge individual subsets together
+            if embed_full is None:
+                embed_full = sub_embed
+                target_full = sub_target
+            else:
+                embed_full = np.concatenate((sub_embed, embed_full))
+                target_full = np.concatenate((sub_target, target_full))
 
 
+        out_subdir = os.path.join(out_dir, runs_subdir)
+        os.makedirs(out_subdir, exist_ok=True) 
 
-        #Merge individual subsets together
-        if embed_full is None:
-            embed_full = sub_embed
-            target_full = sub_target
-        else:
-            embed_full = np.concatenate((sub_embed, embed_full))
-            target_full = np.concatenate((sub_target, target_full))
+        for projection in ["tsne", "umap", "pca"]:
+            #projection = "tsne" #"umap" #"pca"
+            projection_data, reducer = train_and_gen_projection(embed_full, out_subdir, cfg, projection=projection)
 
+            #del embed_full
+
+            #Shift indices to start w/ zero - we can then use GeoTiff files for output / viz
+            shift_1 = abs(min(projection_data[:,0]))
+            shift_2 = abs(min(projection_data[:,1]))
+
+            projection_data[:,0] = projection_data[:,0] + shift_1
+            projection_data[:,1] = projection_data[:,1] + shift_2
+
+            #Scale data to expand for viz.
+            projection_data = (projection_data*10).astype(np.int32)
+
+            max_ind_1 = int(max(projection_data[:,0]))
+            max_ind_2 = int(max(projection_data[:,1]))
+            final_projection = np.zeros((max_ind_1+1, max_ind_2+1), dtype=np.int32) - 1.0
+
+            for i in range(target_full.shape[0]):
+                final_projection[int(projection_data[i,0]), int(projection_data[i,1])] = target_full[i]
  
-    for projection in ["tsne", "umap"]: #, "pca"]:
-        #projection = "tsne" #"umap" #"pca"
-        projection_data, reducer = train_and_gen_projection(embed_full, out_dir, cfg, projection=projection)
+            ras_meta = {'driver': 'GTiff', 'dtype': 'int32', 'nodata': -1, 'width': final_projection.shape[1], 'height': final_projection.shape[0], 'count': 1, 'tiled': False, 'interleave': 'band'}
+          
+            silhouette = metrics.silhouette_score(projection_data, target_full)
 
-        #del embed_full
+            if projection not in silhouettes:
+                silhouettes[projection] = { choices["encoder"] : [silhouette] }
+            elif choices["encoder"] not in silhouettes[projection]:
+                silhouettes[projection][choices["encoder"]] = [silhouette] 
+            else:
+                silhouettes[projection][choices["encoder"]].append(silhouette)
 
-        #Shift indices to start w/ zero - we can then use GeoTiff files for output / viz
-        shift_1 = abs(min(projection_data[:,0]))
-        shift_2 = abs(min(projection_data[:,1]))
-
-        projection_data[:,0] = projection_data[:,0] + shift_1
-        projection_data[:,1] = projection_data[:,1] + shift_2
-
-        #Scale data to expand for viz.
-        projection_data = (projection_data*10).astype(np.int32)
-
-        max_ind_1 = int(max(projection_data[:,0]))
-        max_ind_2 = int(max(projection_data[:,1]))
-        final_projection = np.zeros((max_ind_1+1, max_ind_2+1), dtype=np.int32) - 1.0
-
-        for i in range(target_full.shape[0]):
-            final_projection[int(projection_data[i,0]), int(projection_data[i,1])] = target_full[i]
-
-        ras_meta = {'driver': 'GTiff', 'dtype': 'int32', 'nodata': -1, 'width': final_projection.shape[1], 'height': final_projection.shape[0], 'count': 1, 'tiled': False, 'interleave': 'band'}
-
-        out_file = os.path.join(out_dir, choices["encoder"] + "." + projection.upper()  + "_Labels.tif")
-        with rasterio.open(out_file, 'w', **ras_meta) as dst:
-            dst.write(final_projection, 1)
+            print("SILHOUETTE:", projection, choices["encoder"], silhouette)
+            out_file = os.path.join(out_subdir, choices["encoder"] + "." + projection.upper()  + "_Labels.tif")
+            with rasterio.open(out_file, 'w', **ras_meta) as dst:
+                dst.write(final_projection, 1)
     
-        print("Building KNN Graph")
-        build_knn_graph(projection_data[:100], os.path.join(out_dir, choices["encoder"] + "." + projection.upper() + ".knn_graph.zarr"))
+          
+            if build_knn:
+                print("Building KNN Graph")
+                build_knn_graph(projection_data, os.path.join(out_subdir, choices["encoder"] + "." + projection.upper() + ".knn_graph.zarr"))
 
+    for key in silhouettes:
+        for key2 in silhouettes[key]:
+            print("SILHOUETTE STATS", key, key2, np.mean(silhouettes[key][key2]), np.std(silhouettes[key][key2]))
    
 if __name__ == "__main__":
     main()
