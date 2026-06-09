@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
 from calflops import calculate_flops
+from codecarbon import EmissionsTracker
 
 from pangaea.datasets.base import GeoFMDataset, GeoFMSubset, RawGeoFMDataset
 from pangaea.decoders.base import Decoder
@@ -62,83 +63,88 @@ def main(cfg: DictConfig) -> None:
     logger.info("The experiment is stored in %s\n" % exp_dir)
     logger.info(f"Device used: {device}")
 
-    encoder: Encoder = instantiate(cfg.encoder)
-    encoder.load_encoder_weights(logger)
-    logger.info("Built {}.".format(encoder.model_name))
 
+    with EmissionsTracker() as tracker:
 
-    modalities = list(encoder.input_bands.keys())
-    collate_fn = get_collate_fn(modalities,return_meta=True)
+        encoder: Encoder = instantiate(cfg.encoder)
+        encoder.load_encoder_weights(logger)
+        logger.info("Built {}.".format(encoder.model_name))
 
-    n_bands = len(modalities)
+        modalities = list(encoder.input_bands.keys())
+        collate_fn = get_collate_fn(modalities,return_meta=True)
 
-    # Evaluation
-    test_preprocessor = instantiate(
-        cfg.preprocessing.test,
-        dataset_cfg=cfg.dataset,
-        encoder_cfg=cfg.encoder,
-        _recursive_=False,
-    )
+        n_bands = len(modalities)
 
-    # get datasets
-    raw_test_dataset: RawGeoFMDataset = instantiate(cfg.dataset, split="test")
-    test_dataset = GeoFMDataset(raw_test_dataset, test_preprocessor)
+        # Evaluation
+        test_preprocessor = instantiate(
+            cfg.preprocessing.test,
+            dataset_cfg=cfg.dataset,
+            encoder_cfg=cfg.encoder,
+            _recursive_=False,
+        )
 
-    test_loader = DataLoader(
-        test_dataset,
-        # sampler=DistributedSampler(test_dataset),
-        batch_size=cfg.test_batch_size,
-        num_workers=cfg.test_num_workers,
-        pin_memory=True,
-        persistent_workers=False,
-        drop_last=False,
-        collate_fn=collate_fn,
-    )
+        # get datasets
+        raw_test_dataset: RawGeoFMDataset = instantiate(cfg.dataset, split="test")
+        test_dataset = GeoFMDataset(raw_test_dataset, test_preprocessor)
 
+        test_loader = DataLoader(
+            test_dataset,
+            # sampler=DistributedSampler(test_dataset),
+            batch_size=cfg.test_batch_size,
+            num_workers=cfg.test_num_workers,
+            pin_memory=True,
+            persistent_workers=False,
+            drop_last=False,
+            collate_fn=collate_fn,
+        )
 
-    choices = OmegaConf.to_container(HydraConfig.get().runtime.choices)
+        choices = OmegaConf.to_container(HydraConfig.get().runtime.choices)
 
-    out_dir = os.path.join(cfg.embed_dir,cfg.dataset.dataset_name,choices["encoder"],'test/')
+        out_dir = os.path.join(cfg.embed_dir,cfg.dataset.dataset_name,choices["encoder"],'test/')
 
-    if not os.path.isdir(out_dir):
-        os.makedirs(out_dir, exist_ok = True)
+        if not os.path.isdir(out_dir):
+            os.makedirs(out_dir, exist_ok = True)
    
-    encoder.to(device)
+        encoder.to(device)
  
-    #embed test data
-    for batch_idx, data in enumerate(test_loader):
-        if "filename" in data:
-            image, target, image_fname, meta = data["image"], data["target"],data["filename"], data['metadata']
-            image_fname = image_fname[0]
-        else:
-            image, target, meta = data["image"], data["target"], data['metadata']
-            image_fname = meta['image_filename'][0]
+        #embed test data
+        for batch_idx, data in enumerate(test_loader):
+            if "filename" in data:
+                image, target, image_fname, meta = data["image"], data["target"],data["filename"], data['metadata']
+                image_fname = image_fname[0]
+            else:
+                image, target, meta = data["image"], data["target"], data['metadata']
+                image_fname = meta['image_filename'][0]
 
 
 
-        image = {modality: value.to(device) for modality, value in image.items()}
+            image = {modality: value.to(device) for modality, value in image.items()}
 
-        batch_size = 1
+            batch_size = 1
 
-        input = None
-        if encoder.multi_temporal:
-            if not test_dataset.multi_temporal:
-                inpt = image
-        else:
-            inpt = {k: v[:, :, 0, :, :] for k, v in image.items()}        
-            
+            input = None
+            if encoder.multi_temporal:
+                if not test_dataset.multi_temporal:
+                    inpt = image
+            else:
+                inpt = {k: v[:, :, 0, :, :] for k, v in image.items()}        
+            print(inpt.keys(), inpt['optical'].shape) 
 
-        encoder.train()
-        flops, macs, params = calculate_flops(model=encoder,
-                                      args=inpt,
-                                      output_as_string=True,
-                                      output_precision=4)
+            encoder.train()
+            flops, macs, params = calculate_flops(model=encoder,
+                                          args=inpt,
+                                          output_as_string=True,
+                                          output_precision=4)
 
-        log_str = " FLOPs:%s   MACs:%s   Params:%s" %(flops, macs, params)
-        log_str = choices["encoder"] + log_str
-        logger.info(log_str)
+            #log_str = f"\nCarbon emissions from computation: {tracker.final_emissions * 1000:.4f} g CO2eq"
+            #logger.info(log_str)
+            #log_str = "Detailed emissions data:" + tracker.final_emissions_data
+            #logger.info(log_str)
+            log_str = " FLOPs:%s   MACs:%s   Params:%s" %(flops, macs, params)
+            log_str = choices["encoder"] + log_str
+            logger.info(log_str)
       
-        break
+            break
 
 if __name__ == "__main__":
     main()
