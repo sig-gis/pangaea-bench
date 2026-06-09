@@ -500,7 +500,7 @@ def main(cfg: DictConfig) -> None:
 
     ece_dict_full = {}
     dist_dict_full = {}
-    for projection in ["umap"] #, "tsne", "pca"]:
+    for projection in ["umap"]: #, "tsne", "pca"]:
         knn_graphs = {}
         mx_dim_1 = 0
         mx_dim_0 = 0
