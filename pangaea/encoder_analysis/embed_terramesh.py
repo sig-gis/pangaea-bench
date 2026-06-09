@@ -5,6 +5,7 @@ import pprint
 import time
 
 import numpy as np
+import re
 
 import sys
 
@@ -128,43 +129,58 @@ def main(cfg: DictConfig) -> None:
         os.makedirs(out_dir, exist_ok = True)
 
 
-    fname_idx = 0
     for batch in val_loader:
         feat = {}
-
+        proxy_tgt = {}
         batch_data = {}
         for modality, value in batch.items():
-            if "__" in modality:
-                continue
-            batch_data[modality] = value.to(device, dtype=torch.float32)
-        if not val_dataset.multi_temporal:
-            with torch.no_grad():
-                feat = {}
-                for k,v in batch_data.items():
-                    if "__" in k:
-                        continue
-                    feat[k] = encoder({k:v})
+            if "__" in modality or "LULC" in modality or "NDVI" in modality:
+                if "LULC" in modality or "NDVI" in modality:
+                    print(modality, value.shape, "KEYS GEN")
+                    proxy_tgt[modality] = value.numpy()
+                    continue
+            #TODO if "DEM" in modality:
+            #    print(modality, value.shape)
+            #TODO batch_data[modality] = value.to(device, dtype=torch.float32)
+        #TODO if not val_dataset.multi_temporal:
+        #    with torch.no_grad():
+        #        feat = {}
+        #        for k,v in batch_data.items():
+        #            if "__" in k:
+        #                continue
+        #            feat[k] = encoder({k:v})
 
-        for modality, value in feat.items():
-            print(feat[modality][0].shape, len(feat[modality]))
-            feat[modality] = value[-1]
-            feat[modality] = feat[modality][0].cpu().detach().numpy()
+        #for modality, value in feat.items():
+        #    print(feat[modality][0].shape, len(feat[modality]))
+        #    feat[modality] = value[-1]
+        #    feat[modality] = feat[modality][0].cpu().detach().numpy()
 
-  
-        logit_out_fname = "embd_terramesh_" + str(fname_idx)  + ".npy" #Not shuffling for this experimentation - need a better method for future.
-        np.savez(os.path.join(out_dir,logit_out_fname) ,**feat)
-
+        url1 = batch["__url__"][0]
+        url2 = batch["__url__"][-1]
+        key1 = batch["__key__"][0]
+        key2 = batch["__key__"][-1]
+        print(len(batch["__url__"]), url1, key1, url2, key2)
+        url_re = "shard_(\d+)\.tar" 
+        key_re = "val_(\d+)"
+        fname_str = re.search(url_re, url1).group(1) + "_" + re.search(url_re, url2).group(1) + "_" +\
+            re.search(key_re, key1).group(1) + "_" + re.search(key_re, key2).group(1)
+        print(fname_str) 
+ 
+        #TODO logit_out_fname = "embd_terramesh_" + fname_str  + ".npy" #Not shuffling for this experimentation - need a better method for future.
+        print("HERE HERE HERE", proxy_tgt.keys())
+        target_proxy_fname = "tgt_terramesh_" + fname_str  + ".npy"
+        #TODO np.savez(os.path.join(out_dir,logit_out_fname) ,**feat)
+        np.savez(os.path.join(out_dir,target_proxy_fname), **proxy_tgt)
 
         #Saving crop info to allow for full reconstruction and uniform sampling across the same image in multiple runs
-        if "crop" in batch:
-            clip_info_out_fname = "crop_info_terramesh_" + str(fname_idx) + '.npy'
-            for k, v in batch["image"].items():
-                print(batch["crop"][k], k, batch["crop"]["target"])
-            np.save(os.path.join(out_dir,clip_info_out_fname),batch["crop"])
+        #TODO if "crop" in batch:
+        #    clip_info_out_fname = "crop_info_terramesh_" + fname_str + '.npy'
+        #    for k, v in batch["image"].items():
+        #        print(batch["crop"][k], k, batch["crop"]["target"])
+        #    np.save(os.path.join(out_dir,clip_info_out_fname),batch["crop"])
 
-        
-        print(logit_out_fname, os.path.join(out_dir,logit_out_fname))
-        fname_idx += 1
+        print(target_proxy_fname, os.path.join(out_dir,target_proxy_fname))
+        #print(logit_out_fname, os.path.join(out_dir,logit_out_fname))
 
 
 if __name__ == "__main__":
