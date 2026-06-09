@@ -30,4 +30,6 @@ graspologic
 weightwatcher
 future
 zarr
+codecarbon
+
 
