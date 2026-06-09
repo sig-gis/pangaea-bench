@@ -2483,11 +2483,15 @@ class TerraMindViT(Encoder):
         # for key, value in kwargs.items():
         #     d[key] = value
 
-        d = image
-        #if "sar" in image:
-        #    d["S1GRD"] = image["sar"].squeeze(2)
-        #if "optical" in image:
-        #    d["S2L2A"] = image["optical"].squeeze(2)
+       
+        d = {}
+        if "sar" in image:
+            d["S1GRD"] = image["sar"].squeeze(2)
+        if "optical" in image:
+            d["S2L2A"] = image["optical"].squeeze(2)
+
+        if "sar" not in image and "optical"not in image:
+            d = image 
 
         print("HERE IN TERRAMIND", self.mod_name_mapping.keys(), self.encoder_embeddings.keys(), d.keys())
 
