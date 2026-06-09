@@ -29,6 +29,7 @@ from pangaea.utils.utils import (
 
 
 import scipy
+from scipy.sparse import csr_array
 from scipy.spatial.distance import pdist, squareform
 
 #- Graph-stats 
@@ -526,7 +527,6 @@ def main(cfg: DictConfig) -> None:
     heatmaps(ece_dict_full, dist_dict_full)  
     #for key in model_names:				                
     #    summarize_ece_diffs(ece_dict_full, key)
-
 
 
 if __name__ == "__main__":
