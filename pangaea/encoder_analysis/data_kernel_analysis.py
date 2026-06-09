@@ -256,7 +256,7 @@ def run_nomic_analysis(model_names, knn_graphs, out_dir):
             model_name2 = model_names[j]
             print(model_name2, model_name)
             null_dist, ase_n_components  = bootstrap_null(knn_graphs[model_names[i]], n_components=1, \
-                number_of_bootstraps=25, fname_uid="_" + model_names[i] + "_" + model_names[j])
+                number_of_bootstraps=10, fname_uid="_" + model_names[i] + "_" + model_names[j])
             omni_embds = np.squeeze(omni_embds)
             test_statistics_unsorted = np.linalg.norm(omni_embds[i] - omni_embds[j], axis=1)
             test_statistics = np.sort(test_statistics_unsorted)
