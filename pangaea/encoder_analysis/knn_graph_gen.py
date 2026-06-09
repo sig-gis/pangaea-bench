@@ -47,7 +47,7 @@ import scipy
 from scipy.spatial.distance import pdist, squareform
 
 
-def knn_graph(w, k, symmetrize=True, metric='cosine'):
+def knn_graph(w, k, symmetrize=True, metric='euclidean'):
     '''
     :param w: A weighted affinity graph of shape [N, N] or 2-d array 
     :param k: The number of neighbors to use
@@ -73,7 +73,7 @@ def build_knn_graph(embed, out_fname):
     else:
         k=int(np.log(embed.shape[0]* embed.shape[1]))
 
-    knn_graph_out =  knn_graph(embed, k=k, symmetrize=True, metric='cosine')
+    knn_graph_out =  knn_graph(embed, k=k, symmetrize=True, metric='euclidean')
     zarr.save(out_fname, knn_graph_out)
 
 
