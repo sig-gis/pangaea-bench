@@ -31,5 +31,5 @@ weightwatcher
 future
 zarr
 codecarbon
-
+openTSNE
 
