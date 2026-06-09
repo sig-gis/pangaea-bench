@@ -108,7 +108,7 @@ def plot_metrics_depth(metric, ylabel, title, series_name, \
         idname='all'
     else:
         idname='fnl'
-
+    yout = []
 
     #for im, details in enumerate(all_details):
     ind = 0
@@ -121,6 +121,7 @@ def plot_metrics_depth(metric, ylabel, title, series_name, \
             if metric not in all_details[key]:
                 continue
             y = all_details[key][metric].to_numpy()
+            yout.extend(y)
             x = [i for i in range(len(y))]
             if log:
                 y = np.log10(np.array(y+0.000001, dtype=np.float))
@@ -139,6 +140,8 @@ def plot_metrics_depth(metric, ylabel, title, series_name, \
     plt.savefig(figname)
     plt.show()
 
+    if idname == 'fnl' and metric == "alpha":
+        print("Ys", yout)
 
 
 def plot_all_metric_histograms(\
@@ -224,6 +227,8 @@ def plot_all_metric_vs_depth(\
     plot_metrics_depth(metric, xlabel, title, series_name, \
             all_names, all_details, colors, log=False, valid_ids = first_n_last_ids)
 
+    return
+
     metric = "alpha_weighted"
     xlabel = r"Weighted Alpha $\hat{\alpha}$"
     title = series_name
@@ -231,7 +236,7 @@ def plot_all_metric_vs_depth(\
             all_names, all_details, colors, log=False, valid_ids = [])
     plot_metrics_depth(metric, xlabel, title, series_name, \
             all_names, all_details, colors, log=False, valid_ids = first_n_last_ids)
-
+    
 
 
     metric = "stable_rank"
@@ -365,7 +370,7 @@ def main(cfg: DictConfig) -> None:
 
     #plt.rcParams.update({'font.size': 20})
     plot_all_metric_vs_depth(series_name, all_names, colors, summaries, details, first_n_last_ids)
-    plot_all_metric_histograms(series_name, all_names, colors, summaries, details,  first_n_last_ids)
+    ##plot_all_metric_histograms(series_name, all_names, colors, summaries, details,  first_n_last_ids)
 
 
 if __name__ == "__main__":

@@ -28,7 +28,6 @@ class BasePreprocessor:
 
     def check_dimension(self, data: dict[str, torch.Tensor | dict[str, torch.Tensor]]):
         """check dimension (C, T, H, W) of data"""
-        print(data.keys())
         for k, v in data["image"].items():
             if len(v.shape) != 4:
                 raise AssertionError(

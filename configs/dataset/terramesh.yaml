@@ -8,7 +8,7 @@ img_size: 512
 multi_temporal: False
 multi_modal: True
 
-modalities: ["S2L2A", "S2L1C", "S2RGB", "S1GRD", "S1RTC", "DEM"] #, "LULC"] #"NDVI", "LULC"]
+modalities: ["S2L2A", "S2L1C", "S2RGB", "S1GRD", "S1RTC", "DEM", "NDVI", "LULC"]
 
 ignore_index: -1
 num_classes: 2

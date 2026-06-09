@@ -23,4 +23,9 @@ out_dir: './umap_knn'
 defaults:
   - task: ???
   - dataset: ???
+  - encoder: ???
+  - preprocessing: ??
+  - criterion: ???
   - _self_
+
+
