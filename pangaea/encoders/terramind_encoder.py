@@ -300,7 +300,6 @@ class ImageTransform(AbstractTransform):
         return img
 
     def zarr_loader(task: str, path: str):
-        # print(f"loading data from... {path}")
         try:
             zarr_data = xr.open_zarr(path)
             bands = zarr_data["bands"].values
@@ -308,7 +307,6 @@ class ImageTransform(AbstractTransform):
             logging.error(f'Error while loading {path}')
             logging.exception(e)
             raise e
-        # print(f"bands.shape = {bands.shape}")
         return bands
 
     @staticmethod
@@ -377,7 +375,6 @@ class Sen1GRDTransform(ImageTransform):
         img = self.satellite_image_crop_and_resize(img, crop_coords, target_size, resample_mode=resample_mode)
         img = self.image_hflip(img, flip)
         # img = img.unsqueeze(dim=2)
-        # print(f"Sentinel-1 training data shape: {img.shape}")
         return img
 
     def postprocess(self, sample):
@@ -471,7 +468,6 @@ class Sen2L2ATransform(ImageTransform):
         img = self.satellite_image_crop_and_resize(img, crop_coords, target_size, resample_mode=resample_mode)
         img = self.image_hflip(img, flip)
         # img = img.unsqueeze(dim=2)
-        # print(f"Sentinel-2-L2A training data shape: {img.shape}")
         return img
 
     def postprocess(self, sample):
@@ -535,7 +531,6 @@ class Sen2RGBTransform(ImageTransform):
         img = self.satellite_image_crop_and_resize(img, crop_coords, target_size, resample_mode=resample_mode)
         img = self.image_hflip(img, flip)
         # img = img.unsqueeze(dim=2)
-        # print(f"Sentinel-2-L2A training data shape: {img.shape}")
         return img
 
     def postprocess(self, sample):
@@ -2359,10 +2354,8 @@ class TerraMindViT(Encoder):
         download_url = download_url,
         )
 
-        # print(modalities)
        
         modalities = list(modalities)
-        # print(type(modalities))
 
         if modalities is None or len(modalities) == 0:
             # Init new image modality
@@ -2483,11 +2476,16 @@ class TerraMindViT(Encoder):
         # for key, value in kwargs.items():
         #     d[key] = value
 
+       
         d = {}
         if "sar" in image:
             d["S1GRD"] = image["sar"].squeeze(2)
         if "optical" in image:
             d["S2L2A"] = image["optical"].squeeze(2)
+
+        if "sar" not in image and "optical"not in image:
+            d = image 
+
 
         if self.training and self.modality_drop_rate:
             # Drop random modalities during training
@@ -2495,9 +2493,6 @@ class TerraMindViT(Encoder):
                 if random.random() < self.modality_drop_rate:
                     _ = d.pop(key)
 
-        # print(self.mod_name_mapping)
-        # print(image["optical"].shape)
-        # print(image["sar"].shape)
 
         x = []
         num_tokens = []
@@ -2505,12 +2500,8 @@ class TerraMindViT(Encoder):
         for mod, tensor in d.items():
             assert mod in self.mod_name_mapping.keys(), \
                 f'No patch embedding layer found for modality {mod}.'
-
-            # print(tensor.shape)
-            # print(self.encoder_embeddings[self.mod_name_mapping[mod]])
+ 
             mod_dict = self.encoder_embeddings[self.mod_name_mapping[mod]](tensor)
-            # print(mod_dict['x'].shape)
-            # print(mod_dict['emb'].shape)
             # Add embeddings to patchified data
             x.append(mod_dict['x'] + mod_dict['emb'])
             num_tokens.append(mod_dict['x'].shape[-2])
@@ -2526,8 +2517,6 @@ class TerraMindViT(Encoder):
             x = block(x)
             if i in self.output_layers:
                 out.append(x.clone())
-
-        # print(out[0].shape)
 
         out[-1] = self.encoder_norm(x)  # Shape: (B, N, D)
 
@@ -2566,9 +2555,6 @@ class TerraMindViT(Encoder):
             raise NotImplementedError(f'Merging method {self.merge_method} is not implemented. '
                                       f'Select one of mean, max or concat.')
 
-        # print(out[0].shape)
-        # print(out[-1].shape)
-        # print(out[0].shape)
 
         out = [
             x.permute(0, 2, 1)
@@ -2582,7 +2568,6 @@ class TerraMindViT(Encoder):
             for x in out
         ]
 
-        # print(out[0].shape)
 
         return out
 
@@ -2829,4 +2814,3 @@ def terramind_v1_large(**kwargs):
 
 # if __name__ == "__main__":
 #     vit = terramind_v1_base()
-#     print(vit.mod_name_mapping)
