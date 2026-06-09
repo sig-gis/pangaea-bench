@@ -318,7 +318,7 @@ def main(cfg: DictConfig) -> None:
     embed_full = None
     target_full = None
 
-    n_runs = 1 #Simplifying for book chapter
+    n_runs = 10 
     silhouettes = {}
     for i in range(n_runs):
      
