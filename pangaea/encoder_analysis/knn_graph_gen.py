@@ -318,7 +318,7 @@ def main(cfg: DictConfig) -> None:
     embed_full = None
     target_full = None
 
-    n_runs = 10
+    n_runs = 3
     silhouettes = {}
     for i in range(n_runs):
      
