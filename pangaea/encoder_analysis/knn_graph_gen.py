@@ -5,6 +5,7 @@ import pprint
 import time
 
 import numpy as np
+import pandas as pd
 
 import hydra
 import torch
@@ -42,6 +43,8 @@ import rasterio
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import MinMaxScaler
 from sklearn import metrics
+
+import skdim
 
 import scipy
 from scipy.spatial.distance import pdist, squareform
@@ -247,6 +250,62 @@ def train_and_gen_projection(embed, out_dir, cfg, projection = "umap"):
     return embed, reducer
 
 
+def get_estimators():
+    return {
+        "MLE": lambda k: skdim.id.MLE(neighborhood_based=True, n_neighbors=k),
+        "TwoNN": lambda k: skdim.id.TwoNN(),
+        "FisherS": lambda k: skdim.id.FisherS(project_on_sphere=False),
+        "MOM": lambda k: skdim.id.MOM(),
+        "TLE": lambda k: skdim.id.TLE(),
+        "CorrInt": lambda k: skdim.id.CorrInt(),
+        "DANCo": lambda k: skdim.id.DANCo(k=k),
+        "ESS": lambda k: skdim.id.ESS(),
+        "MiND_ML": lambda k: skdim.id.MiND_ML(ver="ML"),
+        "MiND_KL": lambda k: skdim.id.MiND_ML(ver="KL"),
+        "MADA": lambda k: skdim.id.MADA(),
+    }
+
+
+def estimate_id(embed, methods, k_values):
+    results = []
+    estimators = get_estimators()
+
+    for method in methods:
+        for k in k_values:
+            try:
+                print("METHOD ID", method)
+                estimator = estimators[method](k)
+                estimator.fit(embed)
+
+                if hasattr(estimator, "dimension_"):
+                    val = float(estimator.dimension_)
+                elif hasattr(estimator, "dimension_pw_"):
+                    val = float(np.nanmean(estimator.dimension_pw_))
+                else:
+                    raise RuntimeError(f"No dimension attribute for {method}")
+
+                print("ID", val)
+                results.append(
+                    {
+                        "method": method,
+                        "k": k,
+                        "global_id": val,
+                    }
+                )
+            except Exception as e:
+                results.append(
+                    {
+                        "method": method,
+                        "k": k,
+                        "global_id": np.nan,
+                        "error": str(e),
+                    }
+                )
+
+    return results
+
+
+
 @hydra.main(version_base=None, config_path="../../configs", config_name="knn_graph")
 def main(cfg: DictConfig) -> None:
     """Geofm-bench main function.
@@ -293,7 +352,6 @@ def main(cfg: DictConfig) -> None:
     test_loader = DataLoader(
         test_dataset,
         # sampler=DistributedSampler(test_dataset),
-        batch_size=cfg.test_batch_size,
         num_workers=cfg.test_num_workers,
         pin_memory=True,
         persistent_workers=False,
@@ -314,17 +372,17 @@ def main(cfg: DictConfig) -> None:
     if not os.path.isdir(out_dir):
         os.makedirs(out_dir, exist_ok = True)
 
-    #Structure embedding test data
-    embed_full = None
-    target_full = None
-
     n_runs = 3
     silhouettes = {}
+    all_rows_id = []
     for i in range(n_runs):
-     
-        build_knn = False    
-        if i == 0:
-            build_knn = True
+        #Structure embedding test data
+        embed_full = None
+        target_full = None    
+  
+        build_knn = False #True    
+        #if i != 1:
+        #    build_knn = False
 
         runs_subdir = "run_" + str(i) 
 
@@ -356,8 +414,9 @@ def main(cfg: DictConfig) -> None:
             #print(crop_info)
     
             #Rescale embedding to original dimension
+            print("RESCALE PRE", embed.min(), embed.max())
             embed, target = rescale_embed(embed, img_size, device, target, crop_info)
-     
+            print("RESCALE POST", embed.min(), embed.max(), embed.shape)
 
             #Flatten dimensions, except feature/channel dim
 
@@ -374,6 +433,7 @@ def main(cfg: DictConfig) -> None:
             sub_embed = embed[indices,:]
             sub_target = target[indices]
 
+            print("SUB SIZE", sub_embed.shape)
             #Merge individual subsets together
             if embed_full is None:
                 embed_full = sub_embed
@@ -383,56 +443,85 @@ def main(cfg: DictConfig) -> None:
                 target_full = np.concatenate((sub_target, target_full))
 
 
+        print("HERE", embed_full.min(), embed_full.max())
         out_subdir = os.path.join(out_dir, runs_subdir)
         os.makedirs(out_subdir, exist_ok=True) 
 
-        for projection in ["tsne", "umap", "pca"]:
-            #projection = "tsne" #"umap" #"pca"
-            projection_data, reducer = train_and_gen_projection(embed_full, out_subdir, cfg, projection=projection)
 
-            #del embed_full
+        methods = ["MLE", "TwoNN", "TLE", "DANCo", "FisherS", "MOM", "CorrInt", "ESS", "MiND_ML", "MiND_KL", "MADA"]
+        k_values = [5,10,20]
 
-            #Shift indices to start w/ zero - we can then use GeoTiff files for output / viz
-            shift_1 = abs(min(projection_data[:,0]))
-            shift_2 = abs(min(projection_data[:,1]))
+        print("Estimating id")
+        id_results = estimate_id(embed_full, methods, k_values)
 
-            projection_data[:,0] = projection_data[:,0] + shift_1
-            projection_data[:,1] = projection_data[:,1] + shift_2
+        for row in id_results:
+            row.update(
+                 {
+                     "model": choices["encoder"],
+                     "n_samples": int(embed_full.shape[0]),
+                     "ambient_dim": int(embed_full.shape[1]),
+                      #"feature_manifest": str(detail_path),
+                 }
+             )
+        all_rows_id.append(row)
 
-            #Scale data to expand for viz.
-            projection_data = (projection_data*10).astype(np.int32)
-
-            max_ind_1 = int(max(projection_data[:,0]))
-            max_ind_2 = int(max(projection_data[:,1]))
-            final_projection = np.zeros((max_ind_1+1, max_ind_2+1), dtype=np.int32) - 1.0
-
-            for i in range(target_full.shape[0]):
-                final_projection[int(projection_data[i,0]), int(projection_data[i,1])] = target_full[i]
  
-            ras_meta = {'driver': 'GTiff', 'dtype': 'int32', 'nodata': -1, 'width': final_projection.shape[1], 'height': final_projection.shape[0], 'count': 1, 'tiled': False, 'interleave': 'band'}
+        for projection in ["tsne", "umap", "pca"]:
+                #projection = "tsne" #"umap" #"pca"
+                projection_data, reducer = train_and_gen_projection(embed_full, out_subdir, cfg, projection=projection)
+
+                #del embed_full
+
+                #Shift indices to start w/ zero - we can then use GeoTiff files for output / viz
+                shift_1 = abs(min(projection_data[:,0]))
+                shift_2 = abs(min(projection_data[:,1]))
+
+                projection_data[:,0] = projection_data[:,0] + shift_1
+                projection_data[:,1] = projection_data[:,1] + shift_2
+
+                #Scale data to expand for viz.
+                projection_data = (projection_data*10).astype(np.int32)
+
+                max_ind_1 = int(max(projection_data[:,0]))
+                max_ind_2 = int(max(projection_data[:,1]))
+                final_projection = np.zeros((max_ind_1+1, max_ind_2+1), dtype=np.int32) - 1.0
+
+                for i in range(target_full.shape[0]):
+                    final_projection[int(projection_data[i,0]), int(projection_data[i,1])] = target_full[i]
+ 
+                ras_meta = {'driver': 'GTiff', 'dtype': 'int32', 'nodata': -1, 'width': final_projection.shape[1], 'height': final_projection.shape[0], 'count': 1, 'tiled': False, 'interleave': 'band'}
           
-            silhouette = metrics.silhouette_score(projection_data, target_full)
+                silhouette = metrics.silhouette_score(projection_data, target_full)
 
-            if projection not in silhouettes:
-                silhouettes[projection] = { choices["encoder"] : [silhouette] }
-            elif choices["encoder"] not in silhouettes[projection]:
-                silhouettes[projection][choices["encoder"]] = [silhouette] 
-            else:
-                silhouettes[projection][choices["encoder"]].append(silhouette)
+                if projection not in silhouettes:
+                    silhouettes[projection] = { choices["encoder"] : [silhouette] }
+                elif choices["encoder"] not in silhouettes[projection]:
+                    silhouettes[projection][choices["encoder"]] = [silhouette] 
+                else:
+                    silhouettes[projection][choices["encoder"]].append(silhouette)
 
-            print("SILHOUETTE:", projection, choices["encoder"], silhouette)
-            out_file = os.path.join(out_subdir, choices["encoder"] + "." + projection.upper()  + "_Labels.tif")
-            with rasterio.open(out_file, 'w', **ras_meta) as dst:
-                dst.write(final_projection, 1)
+                print("SILHOUETTE:", projection, choices["encoder"], silhouette)
+                out_file = os.path.join(out_subdir, choices["encoder"] + "." + projection.upper()  + "_Labels.tif")
+                with rasterio.open(out_file, 'w', **ras_meta) as dst:
+                    dst.write(final_projection, 1)
     
           
-            if build_knn:
-                print("Building KNN Graph")
-                build_knn_graph(projection_data, os.path.join(out_subdir, choices["encoder"] + "." + projection.upper() + ".knn_graph.zarr"))
+                knn_fpath = os.path.join(out_subdir, choices["encoder"] + "." + cfg.dataset.dataset_name + "." + projection.upper() + ".knn_graph.zarr")
+                if build_knn and not os.path.exists(knn_fpath): #TODO allow for overwrite flag
+                    print("Building KNN Graph", knn_fpath)
+                    build_knn_graph(projection_data, knn_fpath)
 
+    out_sil = []
     for key in silhouettes:
         for key2 in silhouettes[key]:
             print("SILHOUETTE STATS", key, key2, np.mean(silhouettes[key][key2]), np.std(silhouettes[key][key2]))
+            out_sil.append({"projection": key, "model":key2, "mean_sil": np.mean(silhouettes[key][key2]), "std_sil": np.std(silhouettes[key][key2])})
+    df = pd.DataFrame(out_sil)
+    df.to_csv(os.path.join(out_dir, "silhouette_stats." + choices["encoder"] + "." + cfg.dataset.dataset_name + ".csv"), index=False) 
+
+    df2 = pd.DataFrame(all_rows_id)
+    df2.to_csv(os.path.join(out_dir, "intrinsic_dimension_summary." + choices["encoder"] + "." + cfg.dataset.dataset_name + ".csv"), index=False)
+
    
 if __name__ == "__main__":
     main()
