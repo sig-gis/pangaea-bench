@@ -412,6 +412,7 @@ def summarize_ece_diffs(ece_dict_full, model_name):
             for j in range(1, len(tmp)):
                 diffs_same_proj[proj].append((tmp[i] - tmp[j])**2)
 
+    #TODO - log in dictionary and return
     for key in diffs_same_proj:
         print(key, "RMSD", math.sqrt(np.mean(diffs_same_proj[key])))
 
@@ -473,11 +474,11 @@ def main(cfg: DictConfig) -> None:
             #"prithvi",
             "satlasnet_mi",
             "scalemae",
-            "spectralgpt",
+            #"spectralgpt",
             #"ssl4eo_data2vec",
             #"ssl4eo_dino",
             #"ssl4eo_mae_optical",
-            "ssl4eo_moco",
+            #"ssl4eo_moco",
             "unet_encoder_mi",
             "terramind_large",
             "vit_scratch",
@@ -498,35 +499,45 @@ def main(cfg: DictConfig) -> None:
     #projection = "tsne" #"pca"
 
 
-    ece_dict_full = {}
-    dist_dict_full = {}
-    for projection in ["umap", "tsne", "pca"]:
-        knn_graphs = {}
-        mx_dim_1 = 0
-        mx_dim_0 = 0
-        for key in model_names:
-            print(os.path.join(os.path.join(os.path.join(out_dir, key), "run_0"), key + "." + projection.upper() + ".knn_graph.zarr"))
-            knn_graphs[key] = csr_array(zarr.load(os.path.join(os.path.join(os.path.join(out_dir, key), "run_0"), key + "." + projection.upper() + ".knn_graph.zarr")))
-            print(np.unique(knn_graphs[key]))
-            mx_dim_1 = max(mx_dim_1, knn_graphs[key].shape[1])
-            mx_dim_0 = max(mx_dim_0, knn_graphs[key].shape[0])
-            #knn_graphs[key] = knn_graphs[key].astype(np.int8)
+
+    dist_dicts = []
+    ece_dicts = []
+    n_runs = 3 
+    for n in range(n_runs):
+        ece_dict_full = {}
+        dist_dict_full = {}
+        for projection in ["umap", "tsne", "pca"]:
+            knn_graphs = {}
+            mx_dim_1 = 0
+            mx_dim_0 = 0
+            for key in model_names:
+                print(os.path.join(os.path.join(os.path.join(out_dir, key), "run_" + str(n)), key + "." + cfg.dataset.dataset_name + "." + projection.upper() + ".knn_graph.zarr"))
+                knn_graphs[key] = csr_array(zarr.load(os.path.join(os.path.join(os.path.join(out_dir, key), "run_" + str(n)), key + "."  + cfg.dataset.dataset_name + "." + projection.upper() + ".knn_graph.zarr")))
+                print(np.unique(knn_graphs[key]))
+                mx_dim_1 = max(mx_dim_1, knn_graphs[key].shape[1])
+                mx_dim_0 = max(mx_dim_0, knn_graphs[key].shape[0])
+                #knn_graphs[key] = knn_graphs[key].astype(np.int8)
          
-        #for key in model_names:
-        #    new_arr = np.zeros((mx_dim_0, mx_dim_1), dtype=np.int8)
-        #    new_arr[0:knn_graphs[key].shape[0], 0:knn_graphs[key].shape[1]] = knn_graphs[key]
-        #    knn_graphs[key] = new_arr
-        #    print(new_arr.shape)
+            #for key in model_names:
+            #    new_arr = np.zeros((mx_dim_0, mx_dim_1), dtype=np.int8)
+            #    new_arr[0:knn_graphs[key].shape[0], 0:knn_graphs[key].shape[1]] = knn_graphs[key]
+            #    knn_graphs[key] = new_arr
+            #    print(new_arr.shape)
 
-        print("Running Analysis")
-        ece_dict, dist_dict = run_nomic_analysis(model_names, knn_graphs, out_dir)
-        ece_dict_full[projection] = ece_dict
-        dist_dict_full[projection] = dist_dict
-        del knn_graphs 
+            print("Running Analysis")
+            ece_dict, dist_dict = run_nomic_analysis(model_names, knn_graphs, os.path.join(out_dir,  "run_" + str(n)))
+            ece_dict_full[projection] = ece_dict
+            dist_dict_full[projection] = dist_dict
+            del knn_graphs 
 
-    heatmaps(ece_dict_full, dist_dict_full)  
-    #for key in model_names:				                
-    #    summarize_ece_diffs(ece_dict_full, key)
+        heatmaps(ece_dict_full, dist_dict_full)  
+        dist_dicts.append(dist_dict_full)
+        ece_dicts.append(ece_dict_full)
+        for key in model_names:				                
+            summarize_ece_diffs(ece_dict_full, key)
+
+    np.savez(os.path.join(out_dir, "Full_ECE_data.npz"), ece_dicts)
+    np.savez(os.path.join(out_dir, "Full_Dist_data.npz"), dist_dicts)
 
 
 if __name__ == "__main__":
