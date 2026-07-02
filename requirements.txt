@@ -6,6 +6,7 @@ geopandas
 rasterio
 pillow
 scikit-learn
+scikit-dimension
 tensorboard
 tqdm
 tifffile
