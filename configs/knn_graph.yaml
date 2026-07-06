@@ -19,8 +19,10 @@ ckpt_dir: ???
 embed_dir: './embeddings'
 out_dir: './umap_knn'
 
-label_file_subset: 10
-umap_n_neighbors: 20
+#label_file_subset: 20 #HLS
+#label_file_subset: 1 #mSA
+label_file_subset: 3 #mChes
+umap_n_neighbors: 10
 umap_min_dist: 0.5
 umap_spread: 1
 umap_n_components: 2
