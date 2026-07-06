@@ -455,6 +455,7 @@ def main(cfg: DictConfig) -> None:
         id_results = estimate_id(embed_full, methods, k_values)
 
         for row in id_results:
+
             row.update(
                  {
                      "model": choices["encoder"],
@@ -462,8 +463,9 @@ def main(cfg: DictConfig) -> None:
                      "ambient_dim": int(embed_full.shape[1]),
                       #"feature_manifest": str(detail_path),
                  }
-             )
-        all_rows_id.append(row)
+            )
+
+            all_rows_id.append(row)
 
  
         for projection in ["tsne", "umap", "pca"]:
